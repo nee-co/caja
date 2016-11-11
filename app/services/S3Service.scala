@@ -10,7 +10,7 @@ import utils.Using
 
 import scala.util.{Failure, Success, Try}
 
-object S3Service {
+class S3Service {
   private val config = ConfigFactory.parseFile(new File("./conf/application.conf")).resolve
   private val accessKey  = config.getString("aws.s3.accesskey")
   private val secretKey  = config.getString("aws.s3.secretkey")
