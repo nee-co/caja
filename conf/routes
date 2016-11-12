@@ -1,1 +1,5 @@
 # Routes
+
+# Internal
+POST    /internal/folders           controllers.FolderController.init
+POST    /internal/folders/cleanup   controllers.FolderController.clean
