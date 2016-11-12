@@ -19,33 +19,33 @@ trait Tables {
   def ddl = schema
 
   /** Entity class storing rows of table Files
-   *  @param id Database column id SqlType(INT), AutoInc, PrimaryKey
-   *  @param parentId Database column parent_id SqlType(INT), Default(None)
-   *  @param groupId Database column group_id SqlType(INT), Default(None)
+   *  @param id Database column id SqlType(CHAR), PrimaryKey, Length(36,false)
+   *  @param parentId Database column parent_id SqlType(INT)
+   *  @param groupId Database column group_id SqlType(INT)
    *  @param name Database column name SqlType(VARCHAR), Length(50,true)
    *  @param objectKey Database column object_key SqlType(VARCHAR), Length(255,true)
    *  @param insertedBy Database column inserted_by SqlType(INT)
    *  @param insertedAt Database column inserted_at SqlType(DATETIME)
    *  @param updatedBy Database column updated_by SqlType(INT)
    *  @param updatedAt Database column updated_at SqlType(DATETIME) */
-  case class FilesRow(id: Int, parentId: Option[Int] = None, groupId: Option[Int] = None, name: String, objectKey: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
+  case class FilesRow(id: String, parentId: Int, groupId: Int, name: String, objectKey: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching FilesRow objects using plain SQL queries */
-  implicit def GetResultFilesRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[String], e3: GR[java.sql.Timestamp]): GR[FilesRow] = GR{
+  implicit def GetResultFilesRow(implicit e0: GR[String], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FilesRow] = GR{
     prs => import prs._
-    FilesRow.tupled((<<[Int], <<?[Int], <<?[Int], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
+    FilesRow.tupled((<<[String], <<[Int], <<[Int], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
   }
   /** Table description of table files. Objects of this class serve as prototypes for rows in queries. */
   class Files(_tableTag: Tag) extends Table[FilesRow](_tableTag, "files") {
     def * = (id, parentId, groupId, name, objectKey, insertedBy, insertedAt, updatedBy, updatedAt) <> (FilesRow.tupled, FilesRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), parentId, groupId, Rep.Some(name), Rep.Some(objectKey), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt)).shaped.<>({r=>import r._; _1.map(_=> FilesRow.tupled((_1.get, _2, _3, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(parentId), Rep.Some(groupId), Rep.Some(name), Rep.Some(objectKey), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt)).shaped.<>({r=>import r._; _1.map(_=> FilesRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column id SqlType(INT), AutoInc, PrimaryKey */
-    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
-    /** Database column parent_id SqlType(INT), Default(None) */
-    val parentId: Rep[Option[Int]] = column[Option[Int]]("parent_id", O.Default(None))
-    /** Database column group_id SqlType(INT), Default(None) */
-    val groupId: Rep[Option[Int]] = column[Option[Int]]("group_id", O.Default(None))
+    /** Database column id SqlType(CHAR), PrimaryKey, Length(36,false) */
+    val id: Rep[String] = column[String]("id", O.PrimaryKey, O.Length(36,varying=false))
+    /** Database column parent_id SqlType(INT) */
+    val parentId: Rep[Int] = column[Int]("parent_id")
+    /** Database column group_id SqlType(INT) */
+    val groupId: Rep[Int] = column[Int]("group_id")
     /** Database column name SqlType(VARCHAR), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
     /** Database column object_key SqlType(VARCHAR), Length(255,true) */
@@ -63,32 +63,32 @@ trait Tables {
   lazy val Files = new TableQuery(tag => new Files(tag))
 
   /** Entity class storing rows of table Folders
-   *  @param id Database column id SqlType(INT), AutoInc, PrimaryKey
-   *  @param parentId Database column parent_id SqlType(INT), Default(None)
-   *  @param groupId Database column group_id SqlType(INT), Default(None)
+   *  @param id Database column id SqlType(CHAR), PrimaryKey, Length(36,false)
+   *  @param parentId Database column parent_id SqlType(INT)
+   *  @param groupId Database column group_id SqlType(INT)
    *  @param name Database column name SqlType(VARCHAR), Length(50,true)
    *  @param insertedBy Database column inserted_by SqlType(INT)
    *  @param insertedAt Database column inserted_at SqlType(DATETIME)
    *  @param updatedBy Database column updated_by SqlType(INT)
    *  @param updatedAt Database column updated_at SqlType(DATETIME) */
-  case class FoldersRow(id: Int, parentId: Option[Int] = None, groupId: Option[Int] = None, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
+  case class FoldersRow(id: String, parentId: Int, groupId: Int, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching FoldersRow objects using plain SQL queries */
-  implicit def GetResultFoldersRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[String], e3: GR[java.sql.Timestamp]): GR[FoldersRow] = GR{
+  implicit def GetResultFoldersRow(implicit e0: GR[String], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FoldersRow] = GR{
     prs => import prs._
-    FoldersRow.tupled((<<[Int], <<?[Int], <<?[Int], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
+    FoldersRow.tupled((<<[String], <<[Int], <<[Int], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
   }
   /** Table description of table folders. Objects of this class serve as prototypes for rows in queries. */
   class Folders(_tableTag: Tag) extends Table[FoldersRow](_tableTag, "folders") {
     def * = (id, parentId, groupId, name, insertedBy, insertedAt, updatedBy, updatedAt) <> (FoldersRow.tupled, FoldersRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), parentId, groupId, Rep.Some(name), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt)).shaped.<>({r=>import r._; _1.map(_=> FoldersRow.tupled((_1.get, _2, _3, _4.get, _5.get, _6.get, _7.get, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(parentId), Rep.Some(groupId), Rep.Some(name), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt)).shaped.<>({r=>import r._; _1.map(_=> FoldersRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
-    /** Database column id SqlType(INT), AutoInc, PrimaryKey */
-    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
-    /** Database column parent_id SqlType(INT), Default(None) */
-    val parentId: Rep[Option[Int]] = column[Option[Int]]("parent_id", O.Default(None))
-    /** Database column group_id SqlType(INT), Default(None) */
-    val groupId: Rep[Option[Int]] = column[Option[Int]]("group_id", O.Default(None))
+    /** Database column id SqlType(CHAR), PrimaryKey, Length(36,false) */
+    val id: Rep[String] = column[String]("id", O.PrimaryKey, O.Length(36,varying=false))
+    /** Database column parent_id SqlType(INT) */
+    val parentId: Rep[Int] = column[Int]("parent_id")
+    /** Database column group_id SqlType(INT) */
+    val groupId: Rep[Int] = column[Int]("group_id")
     /** Database column name SqlType(VARCHAR), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
     /** Database column inserted_by SqlType(INT) */
