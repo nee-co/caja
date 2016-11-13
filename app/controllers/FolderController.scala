@@ -11,7 +11,7 @@ class FolderController @Inject()(db: DBService) extends Controller {
 
     (groupId.nonEmpty, db.hasTop(groupId.get)) match {
       case (true,  true) => Status(204)
-      case (true, false) => if (db.addFolder(0, groupId.get, 0, "top")) Status(204) else Status(500)
+      case (true, false) => if (db.addFolder("0", groupId.get, 0, "top")) Status(204) else Status(500)
       case (   _,     _) => Status(500)
     }
   }
