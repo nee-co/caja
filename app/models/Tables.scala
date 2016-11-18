@@ -21,18 +21,18 @@ trait Tables {
   /** Entity class storing rows of table Files
    *  @param id Database column id SqlType(CHAR), PrimaryKey, Length(36,false)
    *  @param parentId Database column parent_id SqlType(VARCHAR), Length(36,true)
-   *  @param groupId Database column group_id SqlType(INT)
+   *  @param groupId Database column group_id SqlType(VARCHAR), Length(36,true)
    *  @param name Database column name SqlType(VARCHAR), Length(50,true)
    *  @param objectKey Database column object_key SqlType(VARCHAR), Length(255,true)
    *  @param insertedBy Database column inserted_by SqlType(INT)
    *  @param insertedAt Database column inserted_at SqlType(DATETIME)
    *  @param updatedBy Database column updated_by SqlType(INT)
    *  @param updatedAt Database column updated_at SqlType(DATETIME) */
-  case class FilesRow(id: String, parentId: String, groupId: Int, name: String, objectKey: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
+  case class FilesRow(id: String, parentId: String, groupId: String, name: String, objectKey: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching FilesRow objects using plain SQL queries */
   implicit def GetResultFilesRow(implicit e0: GR[String], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FilesRow] = GR{
     prs => import prs._
-    FilesRow.tupled((<<[String], <<[String], <<[Int], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
+    FilesRow.tupled((<<[String], <<[String], <<[String], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
   }
   /** Table description of table files. Objects of this class serve as prototypes for rows in queries. */
   class Files(_tableTag: Tag) extends Table[FilesRow](_tableTag, "files") {
@@ -44,8 +44,8 @@ trait Tables {
     val id: Rep[String] = column[String]("id", O.PrimaryKey, O.Length(36,varying=false))
     /** Database column parent_id SqlType(VARCHAR), Length(36,true) */
     val parentId: Rep[String] = column[String]("parent_id", O.Length(36,varying=true))
-    /** Database column group_id SqlType(INT) */
-    val groupId: Rep[Int] = column[Int]("group_id")
+    /** Database column group_id SqlType(VARCHAR), Length(36,true) */
+    val groupId: Rep[String] = column[String]("group_id", O.Length(36,varying=true))
     /** Database column name SqlType(VARCHAR), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
     /** Database column object_key SqlType(VARCHAR), Length(255,true) */
@@ -65,17 +65,17 @@ trait Tables {
   /** Entity class storing rows of table Folders
    *  @param id Database column id SqlType(CHAR), PrimaryKey, Length(36,false)
    *  @param parentId Database column parent_id SqlType(VARCHAR), Length(36,true)
-   *  @param groupId Database column group_id SqlType(INT)
+   *  @param groupId Database column group_id SqlType(VARCHAR), Length(36,true)
    *  @param name Database column name SqlType(VARCHAR), Length(50,true)
    *  @param insertedBy Database column inserted_by SqlType(INT)
    *  @param insertedAt Database column inserted_at SqlType(DATETIME)
    *  @param updatedBy Database column updated_by SqlType(INT)
    *  @param updatedAt Database column updated_at SqlType(DATETIME) */
-  case class FoldersRow(id: String, parentId: String, groupId: Int, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
+  case class FoldersRow(id: String, parentId: String, groupId: String, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching FoldersRow objects using plain SQL queries */
   implicit def GetResultFoldersRow(implicit e0: GR[String], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FoldersRow] = GR{
     prs => import prs._
-    FoldersRow.tupled((<<[String], <<[String], <<[Int], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
+    FoldersRow.tupled((<<[String], <<[String], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
   }
   /** Table description of table folders. Objects of this class serve as prototypes for rows in queries. */
   class Folders(_tableTag: Tag) extends Table[FoldersRow](_tableTag, "folders") {
@@ -87,8 +87,8 @@ trait Tables {
     val id: Rep[String] = column[String]("id", O.PrimaryKey, O.Length(36,varying=false))
     /** Database column parent_id SqlType(VARCHAR), Length(36,true) */
     val parentId: Rep[String] = column[String]("parent_id", O.Length(36,varying=true))
-    /** Database column group_id SqlType(INT) */
-    val groupId: Rep[Int] = column[Int]("group_id")
+    /** Database column group_id SqlType(VARCHAR), Length(36,true) */
+    val groupId: Rep[String] = column[String]("group_id", O.Length(36,varying=true))
     /** Database column name SqlType(VARCHAR), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
     /** Database column inserted_by SqlType(INT) */

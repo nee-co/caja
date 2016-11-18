@@ -4,7 +4,7 @@
 CREATE TABLE `files` (
   `id` CHAR(36) NOT NULL COMMENT 'UUID',
   `parent_id` VARCHAR(36) NOT NULL COMMENT '上階層フォルダ',
-  `group_id` INTEGER NOT NULL COMMENT 'グループ',
+  `group_id` VARCHAR(36) NOT NULL COMMENT 'グループ',
   `name` VARCHAR(50) NOT NULL COMMENT 'ファイル名',
   `object_key` VARCHAR(255) NOT NULL COMMENT 'オブジェクトキー',
   `inserted_by` INTEGER NOT NULL COMMENT '作成者',
