@@ -35,7 +35,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
               case Some(jsValue) => Created(jsValue)
               case None => InternalServerError
             }
-          case (false, Some(createdId)) => db.deleteFile(createdId); InternalServerError
+          case (false, Some(createdId)) => db.deleteFile(createdId, p2); InternalServerError
           case ( true,            None) => s3.delete(s"${parent.groupId}/$id"); InternalServerError
           case _ => InternalServerError
         }
@@ -83,6 +83,24 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
       case (Some(p1), Some(p2), Some(p3), false) => Status(403)
       case (Some(p1), Some(p2),     None,     _) => Status(404)
       case (Some(p1),     None, Some(p3),     _) => Status(422)
+      case _ => Status(500)
+    }
+  }
+
+  def delete(id: String) = Action { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val file = db.getFile(id)
+    val canDelete = db.canUpdateAndDeleteFile(id, loginId)
+
+    (loginId, file, canDelete) match {
+      case (Some(p1), Some(p2),  true) =>
+        (s3.delete(s"${p2.groupId}/${p2.id}"), db.deleteFile(id, p1)) match {
+          case (true,  true) => NoContent
+          case (true, false) => db.createFile(p2.id, p2.parentId, p1, p2.name, s"${p2.groupId}/${p2.id}"); InternalServerError
+          case _ => Status(500)
+        }
+      case (Some(p1), Some(p2), false) => Status(403)
+      case (Some(p1),     None,     _) => Status(404)
       case _ => Status(500)
     }
   }

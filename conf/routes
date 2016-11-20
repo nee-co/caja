@@ -8,6 +8,7 @@ POST    /internal/folders/cleanup   controllers.FolderController.clean
 GET     /files/:id                  controllers.FileController.download(id: String)
 POST    /files                      controllers.FileController.upload
 PATCH   /files/:id                  controllers.FileController.update(id: String)
+DELETE  /files/:id                  controllers.FileController.delete(id: String)
 
 # Folder
 GET     /folders/:id                controllers.FolderController.elements(id: String)

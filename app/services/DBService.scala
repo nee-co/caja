@@ -70,7 +70,14 @@ class DBService @Inject()(dao: DAO) {
     })
   }
 
-  def deleteFile(fileId: String): Boolean = dao.deleteFileById(fileId)
+  def deleteFile(fileId: String, userId: Int): Boolean = {
+    val file = getFile(fileId)
+
+    if (dao.deleteFileById(fileId)) {
+      updateFolders(file.fold("")(_.parentId), userId)
+      true
+    } else false
+  }
 
 //  def deleteUnderElements(folderId: String): Unit = {
 //    val underFileIds = dao.findFiles(folderId)
