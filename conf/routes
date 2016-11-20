@@ -6,3 +6,4 @@ POST    /internal/folders/cleanup   controllers.FolderController.clean
 
 # Folder
 POST    /folders                    controllers.FolderController.create
+PATCH   /folders/:id                controllers.FolderController.update(id: String)

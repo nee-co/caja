@@ -51,4 +51,29 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case _ => Status(500) 
     } 
   }
+
+  def update(id: String) = Action(parse.multipartFormData) { implicit request => 
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt) 
+    val name = request.body.dataParts("name").headOption 
+    val folder = db.getFolder(id) 
+    val canUpdate = db.canUpdateAndDeleteFolder(id, loginId)  
+
+    (loginId, name, folder, canUpdate) match { 
+      case (Some(p1), Some(p2), Some(p3),  true) => 
+        val updatedId = db.updateFolder(folder, p1, p2) 
+        val updatedFolder = db.getFolder(updatedId.fold("")(identity)) 
+        val users = new scala.collection.mutable.HashMap[Int, User] 
+        val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq  
+
+        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))  
+
+        formatter.toFolderJson(updatedFolder, users.toMap) match { 
+          case Some(jsValue) => Ok(jsValue) 
+          case None => InternalServerError 
+        } 
+      case (Some(p1), Some(p2), Some(p3), false) => Status(403) 
+      case (Some(p1), Some(p2),     None,     _) => Status(404) 
+      case _ => Status(500) 
+    }
+   }
 }
