@@ -51,9 +51,9 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     val canRead = db.canReadFile(Some(id), ws.groups(loginId.fold(0)(identity)))
 
     (loginId, file, canRead, s3.download(file.fold("")(file => s"${file.groupId}/${file.id}"))) match {
-      case (Some(p1), Some(p2),  true, Some(p3)) =>
+      case (Some(p1), Some(p2),  true, Some(p4)) =>
         val temp: File = File.createTempFile("temp", "")
-        for (out <- Using(new FileOutputStream(temp))) out.write(p3)
+        for (out <- Using(new FileOutputStream(temp))) out.write(p4)
         Ok.sendFile(temp, fileName = {f => file.get.name}, onClose = {() => temp.delete})
       case (Some(p1), Some(p2), false,          _) => Status(403)
       case (Some(p1),     None,     _,          _) => Status(404)
