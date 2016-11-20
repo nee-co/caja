@@ -5,6 +5,7 @@ POST    /internal/folders           controllers.FolderController.init
 POST    /internal/folders/cleanup   controllers.FolderController.clean
 
 # File
+GET     /files/:id                  controllers.FileController.download(id: String)
 POST    /files                      controllers.FileController.upload
 
 # Folder

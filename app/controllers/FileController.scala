@@ -1,11 +1,12 @@
 package controllers
 
+import java.io.{File, FileOutputStream}
 import javax.inject.Inject
 
 import models.User
 import play.api.mvc.{Action, Controller}
 import services.{DBService, S3Service, WsService}
-import utils.JsonFormatter
+import utils.{JsonFormatter, Using}
 
 import scala.collection.mutable
 
@@ -40,6 +41,22 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         }
       case (Some(p1), Some(p2), Some(p3), false, false) => db.getFolder(parentId.fold("")(identity)).fold(Status(404))(folder => Status(403))
       case (       _, Some(p2),        _,     _,     _) => Status(422)
+      case _ => Status(500)
+    }
+  }
+
+  def download(id: String) = Action { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val file = db.getFile(id)
+    val canRead = db.canReadFile(Some(id), ws.groups(loginId.fold(0)(identity)))
+
+    (loginId, file, canRead, s3.download(file.fold("")(file => s"${file.groupId}/${file.id}"))) match {
+      case (Some(p1), Some(p2),  true, Some(p3)) =>
+        val temp: File = File.createTempFile("temp", "")
+        for (out <- Using(new FileOutputStream(temp))) out.write(p3)
+        Ok.sendFile(temp, fileName = {f => file.get.name}, onClose = {() => temp.delete})
+      case (Some(p1), Some(p2), false,          _) => Status(403)
+      case (Some(p1),     None,     _,          _) => Status(404)
       case _ => Status(500)
     }
   }
