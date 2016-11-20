@@ -60,4 +60,30 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
       case _ => Status(500)
     }
   }
+
+  def update(id: String) = Action(parse.multipartFormData) { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val name = request.body.dataParts("name").headOption
+    val file = db.getFile(id)
+    val canUpdate = db.canUpdateAndDeleteFile(id, loginId)
+
+    (loginId, name, file, canUpdate) match {
+      case (Some(p1), Some(p2), Some(p3), true) =>
+        val updatedId = db.updateFile(file, p1, p2)
+        val updatedFile = db.getFile(updatedId.fold("")(identity))
+        val users = new mutable.HashMap[Int, User]
+        val userIds = updatedFile.map(_.insertedBy).toSeq ++ updatedFile.map(_.updatedBy).toSeq
+
+        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+
+        formatter.toFileJson(updatedFile, users.toMap) match {
+          case Some(jsValue) => Ok(jsValue)
+          case None => InternalServerError
+        }
+      case (Some(p1), Some(p2), Some(p3), false) => Status(403)
+      case (Some(p1), Some(p2),     None,     _) => Status(404)
+      case (Some(p1),     None, Some(p3),     _) => Status(422)
+      case _ => Status(500)
+    }
+  }
 }

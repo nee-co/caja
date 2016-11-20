@@ -33,6 +33,15 @@ class DBService @Inject()(dao: DAO) {
     }
   }
 
+  def updateFile(file: Option[ObjectProperty], userId: Int, name: String): Option[String] = {
+    file.map { file =>
+      if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, s"${file.parentId}/${file.id}", file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
+        updateFolders(file.parentId, userId)
+        Some(file.id)
+      } else None
+    }.getOrElse(None)
+  }
+
   def createFolder(parentId: String, groupId: String, userId: Int, name: String): Option[String] = {
     val id = uuid
     dao.findFolder(parentId) match {
@@ -47,7 +56,7 @@ class DBService @Inject()(dao: DAO) {
 
   def updateFolder(folder: Option[ObjectProperty], userId: Int, name: String): Option[String] = {
     folder.map { folder =>
-      if (!dao.hasObjectByName(folder.parentId, name) && dao.update(FoldersRow(folder.id, folder.parentId, folder.groupId, name, folder.insertedBy, new Timestamp(DateFormat.parse(folder.insertedAt).getTime), userId, nowTimestamp))) {
+      if (!dao.hasObjectByName(folder.parentId, name) && name != "" && dao.update(FoldersRow(folder.id, folder.parentId, folder.groupId, name, folder.insertedBy, new Timestamp(DateFormat.parse(folder.insertedAt).getTime), userId, nowTimestamp))) {
         updateFolders(folder.parentId, userId)
         Some(folder.id)
       } else None
