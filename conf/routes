@@ -5,5 +5,6 @@ POST    /internal/folders           controllers.FolderController.init
 POST    /internal/folders/cleanup   controllers.FolderController.clean
 
 # Folder
+GET     /folders/:id                controllers.FolderController.elements(id: String)
 POST    /folders                    controllers.FolderController.create
 PATCH   /folders/:id                controllers.FolderController.update(id: String)

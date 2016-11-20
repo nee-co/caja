@@ -76,4 +76,25 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case _ => Status(500) 
     }
    }
+
+  def elements(id: String) = Action { implicit request => 
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt) 
+    val users = new scala.collection.mutable.HashMap[Int, User] 
+    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity))) 
+    val hasFolder = db.getFolder(id).nonEmpty 
+    val current = db.getFolder(id) 
+    val elements = db.getUnderElements(id) 
+    val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq  
+
+    ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))  
+
+    val json = formatter.toUnderCollectionJson(current, elements, users.toMap)  
+
+    (canRead, hasFolder, json) match { 
+      case ( true,  true, Some(jsValue)) => Ok(jsValue) 
+      case (false,  true,             _) => Status(403) 
+      case (    _, false,             _) => Status(404) 
+      case _ => Status(500) 
+    }
+   }
 }
