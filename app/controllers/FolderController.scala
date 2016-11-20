@@ -7,17 +7,21 @@ import services.DBService
 
 class FolderController @Inject()(db: DBService) extends Controller {
   def init = Action(parse.multipartFormData) { implicit request =>
-    val groupId = request.body.dataParts("group_id").headOption.map(_.toInt)
+    val groupId = request.body.dataParts("group_id").headOption
 
     (groupId.nonEmpty, db.hasTop(groupId.get)) match {
-      case (true,  true) => Status(204)
-      case (true, false) => if (db.addFolder("0", groupId.get, 0, "top")) Status(204) else Status(500)
-      case (   _,     _) => Status(500)
+      case (true,  true) => NoContent
+      case (true, false) =>
+        db.createFolder("0", groupId.get, 0, "top") match {
+          case Some(createdId) => NoContent
+          case None => InternalServerError
+        }
+      case _ => InternalServerError
     }
   }
 
   def clean = Action(parse.multipartFormData) { implicit request =>
-    val groupId = request.body.dataParts("group_id").headOption.map(_.toInt)
+    val groupId = request.body.dataParts("group_id").headOption
     groupId.fold(Status(204))(id => if (db.clean(id)) Status(204) else Status(500))
   }
 }
