@@ -27,74 +27,74 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     groupId.fold(Status(204))(id => if (db.clean(id)) Status(204) else Status(500))
   }
 
-  def create = Action(parse.multipartFormData) { implicit request => 
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt) 
-    val name = request.body.dataParts("name").headOption 
-    val parentId = request.body.dataParts("parent_id").headOption 
-    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)))  
+  def create = Action(parse.multipartFormData) { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val name = request.body.dataParts("name").headOption
+    val parentId = request.body.dataParts("parent_id").headOption
+    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)))
 
-    (parentId, loginId, name, canCreate, db.hasIdenticalName(parentId, name)) match { 
-      case (Some(p1), Some(p2), Some(p3),  true, false) => 
-        val createdId = db.createFolder(p1, "", p2, p3) 
-        val createdFolder = db.getFolder(createdId.fold("")(identity)) 
-        val users = new scala.collection.mutable.HashMap[Int, User] 
-        val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq  
+    (parentId, loginId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
+      case (Some(p1), Some(p2), Some(p3),  true, false) =>
+        val createdId = db.createFolder(p1, "", p2, p3)
+        val createdFolder = db.getFolder(createdId.fold("")(identity))
+        val users = new scala.collection.mutable.HashMap[Int, User]
+        val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))  
+        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
 
-        formatter.toFolderJson(createdFolder, users.toMap) match { 
-          case Some(jsValue) => Created(jsValue) 
-          case None => InternalServerError 
-        } 
-      case (Some(p1), Some(p2), Some(p3), false, false) => Status(403) 
-      case (       _, Some(p2),        _,     _,     _) => Status(422) 
-      case _ => Status(500) 
-    } 
+        formatter.toFolderJson(createdFolder, users.toMap) match {
+          case Some(jsValue) => Created(jsValue)
+          case None => InternalServerError
+        }
+      case (Some(p1), Some(p2), Some(p3), false, false) => Status(403)
+      case (       _, Some(p2),        _,     _,     _) => Status(422)
+      case _ => Status(500)
+    }
   }
 
-  def update(id: String) = Action(parse.multipartFormData) { implicit request => 
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt) 
-    val name = request.body.dataParts("name").headOption 
-    val folder = db.getFolder(id) 
-    val canUpdate = db.canUpdateAndDeleteFolder(id, loginId)  
+  def update(id: String) = Action(parse.multipartFormData) { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val name = request.body.dataParts("name").headOption
+    val folder = db.getFolder(id)
+    val canUpdate = db.canUpdateAndDeleteFolder(id, loginId)
 
-    (loginId, name, folder, canUpdate) match { 
-      case (Some(p1), Some(p2), Some(p3),  true) => 
-        val updatedId = db.updateFolder(folder, p1, p2) 
-        val updatedFolder = db.getFolder(updatedId.fold("")(identity)) 
-        val users = new scala.collection.mutable.HashMap[Int, User] 
-        val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq  
+    (loginId, name, folder, canUpdate) match {
+      case (Some(p1), Some(p2), Some(p3),  true) =>
+        val updatedId = db.updateFolder(folder, p1, p2)
+        val updatedFolder = db.getFolder(updatedId.fold("")(identity))
+        val users = new scala.collection.mutable.HashMap[Int, User]
+        val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))  
+        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
 
-        formatter.toFolderJson(updatedFolder, users.toMap) match { 
-          case Some(jsValue) => Ok(jsValue) 
-          case None => InternalServerError 
-        } 
-      case (Some(p1), Some(p2), Some(p3), false) => Status(403) 
-      case (Some(p1), Some(p2),     None,     _) => Status(404) 
-      case _ => Status(500) 
+        formatter.toFolderJson(updatedFolder, users.toMap) match {
+          case Some(jsValue) => Ok(jsValue)
+          case None => InternalServerError
+        }
+      case (Some(p1), Some(p2), Some(p3), false) => Status(403)
+      case (Some(p1), Some(p2),     None,     _) => Status(404)
+      case _ => Status(500)
     }
-   }
+  }
 
-  def elements(id: String) = Action { implicit request => 
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt) 
-    val users = new scala.collection.mutable.HashMap[Int, User] 
-    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity))) 
-    val hasFolder = db.getFolder(id).nonEmpty 
-    val current = db.getFolder(id) 
-    val elements = db.getUnderElements(id) 
-    val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq  
+  def elements(id: String) = Action { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val users = new scala.collection.mutable.HashMap[Int, User]
+    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity)))
+    val hasFolder = db.getFolder(id).nonEmpty
+    val current = db.getFolder(id)
+    val elements = db.getUnderElements(id)
+    val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq
 
-    ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))  
+    ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
 
-    val json = formatter.toUnderCollectionJson(current, elements, users.toMap)  
+    val json = formatter.toUnderCollectionJson(current, elements, users.toMap)
 
-    (canRead, hasFolder, json) match { 
-      case ( true,  true, Some(jsValue)) => Ok(jsValue) 
-      case (false,  true,             _) => Status(403) 
-      case (    _, false,             _) => Status(404) 
-      case _ => Status(500) 
+    (canRead, hasFolder, json) match {
+      case ( true,  true, Some(jsValue)) => Ok(jsValue)
+      case (false,  true,             _) => Status(403)
+      case (    _, false,             _) => Status(404)
+      case _ => Status(500)
     }
-   }
+  }
 }
