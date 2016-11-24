@@ -7,6 +7,8 @@ import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
 import utils.JsonFormatter
 
+import scala.collection.mutable
+
 class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFormatter) extends Controller {
   def init = Action(parse.multipartFormData) { implicit request =>
     val groupId = request.body.dataParts("group_id").headOption
@@ -37,7 +39,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case (Some(p1), Some(p2), Some(p3),  true, false) =>
         val createdId = db.createFolder(p1, "", p2, p3)
         val createdFolder = db.getFolder(createdId.fold("")(identity))
-        val users = new scala.collection.mutable.HashMap[Int, User]
+        val users = new mutable.HashMap[Int, User]
         val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
 
         ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
@@ -62,7 +64,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case (Some(p1), Some(p2), Some(p3),  true) =>
         val updatedId = db.updateFolder(folder, p1, p2)
         val updatedFolder = db.getFolder(updatedId.fold("")(identity))
-        val users = new scala.collection.mutable.HashMap[Int, User]
+        val users = new mutable.HashMap[Int, User]
         val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq
 
         ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
@@ -79,7 +81,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
 
   def elements(id: String) = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val users = new scala.collection.mutable.HashMap[Int, User]
+    val users = new mutable.HashMap[Int, User]
     val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity)))
     val hasFolder = db.getFolder(id).nonEmpty
     val current = db.getFolder(id)
@@ -95,6 +97,22 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case (false,  true,             _) => Status(403)
       case (    _, false,             _) => Status(404)
       case _ => Status(500)
+    }
+  }
+
+  def tops = Action { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val users = new mutable.HashMap[Int, User]
+    val tops = db.myTops(ws.groups(loginId.fold(0)(identity)))
+    ws.users(tops.map(_.updatedBy).distinct.filter(_ != 0)).foreach(user => users.put(user.user_id, user))
+
+    loginId match {
+      case Some(p1) =>
+        formatter.toTopsJson(tops, users.toMap) match {
+          case Some(jsValue) => Ok(jsValue)
+          case None => InternalServerError
+        }
+      case None => Status(500)
     }
   }
 }

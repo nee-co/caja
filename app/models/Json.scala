@@ -36,14 +36,19 @@ object File {
   implicit def jsonWrites = Json.writes[File]
 }
 
+case class Top(id: String, name: String, updated_user: User, updated_at: String)
+object Top {
+  implicit def jsonWrites = Json.writes[Top]
+}
+
+case class Tops(folders: Seq[Top])
+object Tops {
+  implicit def jsonWrites = Json.writes[Tops]
+}
+
 case class Folder(id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String)
 object Folder {
   implicit def jsonWrites = Json.writes[Folder]
-}
-
-case class Folders(folders: Seq[Folder])
-object Folders {
-  implicit def jsonWrites = Json.writes[Folders]
 }
 
 case class Element(`type`: String, id: String, name: String, created_user: User, created_at: String, updatedBy: User, updatedAt: String)
