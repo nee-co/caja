@@ -15,3 +15,4 @@ GET     /folders                    controllers.FolderController.tops
 GET     /folders/:id                controllers.FolderController.elements(id: String)
 POST    /folders                    controllers.FolderController.create
 PATCH   /folders/:id                controllers.FolderController.update(id: String)
+DELETE  /folders/:id                controllers.FolderController.delete(id: String)

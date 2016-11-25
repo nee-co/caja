@@ -9,7 +9,7 @@ import models.Tables.{FilesRow, FoldersRow}
 import org.joda.time.{DateTime, LocalDateTime}
 import utils.DAO
 
-class DBService @Inject()(dao: DAO) {
+class DBService @Inject()(dao: DAO, s3: S3Service) {
   private def nowTimestamp: Timestamp = new Timestamp(new LocalDateTime().toDateTime().getMillis)
   private def DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   def uuid: String = java.util.UUID.randomUUID.toString
@@ -79,14 +79,14 @@ class DBService @Inject()(dao: DAO) {
     } else false
   }
 
-//  def deleteUnderElements(folderId: String): Unit = {
-//    val underFileIds = dao.findFiles(folderId)
-//    val underFolderIds = dao.findFolders(folderId).map(_.id)
-//
-//    dao.findFolder(folderId).fold()(dao.delete(_))
-//    underFileIds.foreach(dao.delete)
-//    underFolderIds.foreach(deleteUnderElements)
-//  }
+  def deleteUnderElements(folderId: String): Unit = {
+    val underFileIds = dao.findFiles(folderId)
+    val underFolderIds = dao.findFolders(folderId).map(_.id)
+
+    dao.findFolder(folderId).fold()(dao.delete(_))
+    underFileIds.foreach(file => { s3.delete(s"${file.groupId}/${file.id}"); dao.delete(file) })
+    underFolderIds.foreach(deleteUnderElements)
+  }
 
   def getFile(id: String): Option[ObjectProperty] = dao.findFile(id).map(file => ObjectProperty("file", file.id,file.parentId, file.name, file.groupId, file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))
   def getFolder(id: String): Option[ObjectProperty] = dao.findFolder(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))

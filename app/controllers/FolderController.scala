@@ -79,6 +79,22 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     }
   }
 
+  def delete(id: String) = Action { implicit request =>
+    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+    val folder = db.getFolder(id)
+    val canDelete = db.canUpdateAndDeleteFolder(id, loginId)
+
+    (loginId, folder, canDelete) match {
+      case (Some(p1), Some(p2), true) =>
+        db.deleteUnderElements(id)
+        db.updateFolders(folder.fold("")(_.parentId), loginId.fold(0)(identity))
+        NoContent
+      case (Some(p1), Some(p2), false) => Status(403)
+      case (Some(p1),     None,     _) => Status(404)
+      case _ => Status(500)
+    }
+  }
+
   def elements(id: String) = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val users = new mutable.HashMap[Int, User]
