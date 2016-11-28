@@ -1,0 +1,14 @@
+image: 5003/centos-ansible-ci:2.1.x
+pipelines:
+  default:
+    - step:
+        script:
+          - >
+             build_push_image() {
+               test ! -d docker-img && git clone git@bitbucket.org:nhac/docker-img.git docker-img
+               pushd docker-img > /dev/null &&
+                 git pull &&
+                 bash -c ". ./build.sh $1 $2"
+               popd > /dev/null
+             }
+          - sshpass -p "${CI_PASS}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ci@neec.xyz "$(typeset -f); build_push_image $BITBUCKET_REPO_SLUG $BITBUCKET_COMMIT"
