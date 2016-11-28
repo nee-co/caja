@@ -8,7 +8,7 @@ object College {
   implicit def jsonWrites = Json.writes[College]
 }
 
-case class Group(group_id: String, name: String, note: String, is_private: Boolean, group_image: Option[String])
+case class Group(id: String, name: String, note: String, is_private: Boolean, image: Option[String])
 object Group {
   implicit def jsonReads  = Json.reads[Group]
   implicit def jsonWrites = Json.writes[Group]
@@ -20,7 +20,7 @@ object Groups {
   implicit def jsonWrites = Json.writes[Groups]
 }
 
-case class User(user_id: Int, name: String, number: String, note: String, user_image: String, college: College)
+case class User(id: Int, name: String, number: String, note: String, image: String, college: College)
 object User {
   implicit def jsonReads  = Json.reads[User]
   implicit def jsonWrites = Json.writes[User]
@@ -56,7 +56,7 @@ object Element {
   implicit def jsonWrites = Json.writes[Element]
 }
 
-case class ResponseHasElements(current_folder: Folder, elements: Seq[Element])
-object ResponseHasElements {
-  implicit def jsonWrites = Json.writes[ResponseHasElements]
+case class Elements(current_folder: Folder, elements: Seq[Element])
+object Elements {
+  implicit def jsonWrites = Json.writes[Elements]
 }

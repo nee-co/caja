@@ -6,11 +6,11 @@ import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 
 class JsonFormatter {
-  def toTopsJson(tops: Seq[FoldersRow], users: Map[Int, User]): Option[JsValue] = {
+  def toTopsJson(tops: Seq[FoldersRow], users: Map[Int, User], groups: Map[String, Group]): Option[JsValue] = {
     val format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     Some(Json.toJson(
       Tops(tops.map(top =>
-        Top(top.id, top.name, users(top.updatedBy), new DateTime(top.updatedAt).toString(format))
+        Top(top.id, groups(top.groupId).name, users(top.updatedBy), new DateTime(top.updatedAt).toString(format))
       ))
     ))
   }
@@ -22,7 +22,7 @@ class JsonFormatter {
       val currentFolder = Folder(current.id, current.name, users(current.insertedBy), current.insertedAt, users(current.updatedBy), current.updatedAt)
       val elementList = elements.map(obj => Element(obj.`type`, obj.id, obj.name, users(obj.insertedBy), obj.insertedAt, users(obj.updatedBy), obj.updatedAt))
 
-      Json.toJson(ResponseHasElements(currentFolder, elementList))
+      Json.toJson(Elements(currentFolder, elementList))
     }
     result.iterator.toStream.headOption
   }

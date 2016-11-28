@@ -2,7 +2,7 @@ package services
 
 import javax.inject.Inject
 
-import models.{Groups, User, Users}
+import models.{Group, Groups, User, Users}
 import play.api.libs.ws.WSClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,14 +34,14 @@ class WsService @Inject()(ws: WSClient) {
     }
   }
 
-  def groups(userId: Int): Seq[String] = {
+  def groups(userId: Int): Seq[Group] = {
     val groups: Future[Groups] = ws.url(s"${sys.env("CADENA_URL")}/internal/groups?user_id=$userId").get.map(_.json.validate[Groups].get)
 
     Await.ready(groups, Duration.Inf)
 
     groups.value.get match {
-      case Success(result) => result.groups.map(_.group_id)
-      case Failure(t) => Seq.empty[String]
+      case Success(result) => result.groups
+      case Failure(t) => Seq.empty[Group]
     }
   }
 }

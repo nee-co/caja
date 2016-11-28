@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
-import models.User
+import models.{Group, User}
 import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
 import utils.JsonFormatter
@@ -33,7 +33,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val name = request.body.dataParts("name").headOption
     val parentId = request.body.dataParts("parent_id").headOption
-    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)))
+    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)).map(_.id))
 
     (parentId, loginId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
       case (Some(p1), Some(p2), Some(p3),  true, false) =>
@@ -42,7 +42,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
         val users = new mutable.HashMap[Int, User]
         val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
 
         formatter.toFolderJson(createdFolder, users.toMap) match {
           case Some(jsValue) => Created(jsValue)
@@ -67,7 +67,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
         val users = new mutable.HashMap[Int, User]
         val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
 
         formatter.toFolderJson(updatedFolder, users.toMap) match {
           case Some(jsValue) => Ok(jsValue)
@@ -98,13 +98,13 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
   def elements(id: String) = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val users = new mutable.HashMap[Int, User]
-    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity)))
+    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity)).map(_.id))
     val hasFolder = db.getFolder(id).nonEmpty
     val current = db.getFolder(id)
     val elements = db.getUnderElements(id)
     val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq
 
-    ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+    ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
 
     val json = formatter.toUnderCollectionJson(current, elements, users.toMap)
 
@@ -119,12 +119,14 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
   def tops = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val users = new mutable.HashMap[Int, User]
-    val tops = db.myTops(ws.groups(loginId.fold(0)(identity)))
-    ws.users(tops.map(_.updatedBy).distinct.filter(_ != 0)).foreach(user => users.put(user.user_id, user))
+    val groups = new mutable.HashMap[String, Group]
+    ws.groups(loginId.fold(0)(identity)).foreach(group => groups.put(group.id, group))
+    val tops = db.myTops(groups.keysIterator.toSeq)
+    ws.users(tops.map(_.updatedBy).distinct.filter(_ != 0)).foreach(user => users.put(user.id, user))
 
     loginId match {
       case Some(p1) =>
-        formatter.toTopsJson(tops, users.toMap) match {
+        formatter.toTopsJson(tops, users.toMap, groups.toMap) match {
           case Some(jsValue) => Ok(jsValue)
           case None => InternalServerError
         }

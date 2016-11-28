@@ -15,7 +15,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val parentId = request.body.dataParts("parent_id").headOption
     val file = request.body.file("file")
-    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)))
+    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)).map(_.id))
     val hasIdenticalName = db.hasIdenticalName(parentId, Some(file.fold("")(_.filename)))
 
     (parentId, loginId, file, canCreate, hasIdenticalName) match {
@@ -29,7 +29,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
             val users = new mutable.HashMap[Int, User]
             val userIds = createdFile.map(_.insertedBy).toSeq ++ createdFile.map(_.updatedBy).toSeq
 
-            ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+            ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
 
             formatter.toFileJson(createdFile, users.toMap) match {
               case Some(jsValue) => Created(jsValue)
@@ -48,7 +48,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
   def download(id: String) = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
     val file = db.getFile(id)
-    val canRead = db.canReadFile(Some(id), ws.groups(loginId.fold(0)(identity)))
+    val canRead = db.canReadFile(Some(id), ws.groups(loginId.fold(0)(identity)).map(_.id))
 
     (loginId, file, canRead, s3.download(file.fold("")(file => s"${file.groupId}/${file.id}"))) match {
       case (Some(p1), Some(p2),  true, Some(p4)) =>
@@ -74,7 +74,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         val users = new mutable.HashMap[Int, User]
         val userIds = updatedFile.map(_.insertedBy).toSeq ++ updatedFile.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.user_id, user))
+        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
 
         formatter.toFileJson(updatedFile, users.toMap) match {
           case Some(jsValue) => Ok(jsValue)
