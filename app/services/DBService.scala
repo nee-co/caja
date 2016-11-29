@@ -22,10 +22,10 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
   def myTops(groupIds: Seq[String]): Seq[FoldersRow] = dao.findFolders("0").filter(folder => groupIds.contains(folder.groupId))
   def clean(groupId: String): Boolean = dao.deleteByGroupId(groupId)
 
-  def createFile(id:String, parentId: String, userId: Int, name: String, objectKey: String): Option[String] = {
+  def createFile(id:String, parentId: String, userId: Int, name: String): Option[String] = {
     dao.findFolder(parentId) match {
       case Some(parent) =>
-        if (dao.create(FilesRow(id, parent.id, parent.groupId, name, objectKey, userId, nowTimestamp, userId, nowTimestamp))) {
+        if (dao.create(FilesRow(id, parent.id, parent.groupId, name, userId, nowTimestamp, userId, nowTimestamp))) {
           updateFolders(parent.id, userId)
           Some(id)
         } else None
@@ -35,7 +35,7 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
 
   def updateFile(file: Option[ObjectProperty], userId: Int, name: String): Option[String] = {
     file.map { file =>
-      if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, s"${file.parentId}/${file.id}", file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
+      if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
         updateFolders(file.parentId, userId)
         Some(file.id)
       } else None

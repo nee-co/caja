@@ -23,7 +23,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         val id = db.uuid
         val parent = db.getFolder(p1).get
 
-        (s3.upload(s"${parent.groupId}/", id, p3.ref.file), db.createFile(id, parent.id, p2, p3.filename, s"${parent.groupId}/$id")) match {
+        (s3.upload(s"${parent.groupId}/", id, p3.ref.file), db.createFile(id, parent.id, p2, p3.filename)) match {
           case ( true, Some(createdId)) =>
             val createdFile = db.getFile(id)
             val users = new mutable.HashMap[Int, User]
@@ -96,7 +96,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
       case (Some(p1), Some(p2),  true) =>
         (s3.delete(s"${p2.groupId}/${p2.id}"), db.deleteFile(id, p1)) match {
           case (true,  true) => NoContent
-          case (true, false) => db.createFile(p2.id, p2.parentId, p1, p2.name, s"${p2.groupId}/${p2.id}"); InternalServerError
+          case (true, false) => db.createFile(p2.id, p2.parentId, p1, p2.name); InternalServerError
           case _ => Status(500)
         }
       case (Some(p1), Some(p2), false) => Status(403)
