@@ -36,7 +36,7 @@ object File {
   implicit def jsonWrites = Json.writes[File]
 }
 
-case class Top(id: String, name: String, updated_user: User, updated_at: String)
+case class Top(id: String, name: String)
 object Top {
   implicit def jsonWrites = Json.writes[Top]
 }

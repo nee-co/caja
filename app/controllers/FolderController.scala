@@ -118,15 +118,13 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
 
   def tops = Action { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val users = new mutable.HashMap[Int, User]
     val groups = new mutable.HashMap[String, Group]
     ws.groups(loginId.fold(0)(identity)).foreach(group => groups.put(group.id, group))
     val tops = db.myTops(groups.keysIterator.toSeq)
-    ws.users(tops.map(_.updatedBy).distinct.filter(_ != 0)).foreach(user => users.put(user.id, user))
 
     loginId match {
       case Some(p1) =>
-        formatter.toTopsJson(tops, users.toMap, groups.toMap) match {
+        formatter.toTopsJson(tops, groups.toMap) match {
           case Some(jsValue) => Ok(jsValue)
           case None => InternalServerError
         }
