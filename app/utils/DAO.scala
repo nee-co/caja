@@ -83,7 +83,8 @@ class DAO @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) exte
     }
   }
 
-  def deleteByGroupId(groupId: String): Boolean = {
+  def deleteByGroupId(groupId: String): Seq[String] = {
+    val fileKeys = findFilesByGroupId(groupId).map(file => s"${file.groupId}/${file.id}")
     val filesResult = db.run(files.filter(_.groupId === groupId).delete)
     val foldersResult = db.run(folders.filter(_.groupId === groupId).delete)
 
@@ -91,8 +92,8 @@ class DAO @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) exte
     Await.ready(foldersResult, Duration.Inf)
 
     (filesResult.value.get, foldersResult.value.get) match {
-      case (Success(r1), Success(r2)) => true
-      case (_, _) => false
+      case (Success(r1), Success(r2)) => fileKeys
+      case (_, _) => Seq.empty[String]
     }
   }
 
@@ -109,6 +110,17 @@ class DAO @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) exte
 
   def findFiles(parentId: String): Seq[FilesRow] = {
     val result = db.run(files.filter(_.parentId === parentId).result)
+
+    Await.ready(result, Duration.Inf)
+
+    result.value.get match {
+      case Success(objects) => objects
+      case Failure(t) => Seq.empty[FilesRow]
+    }
+  }
+
+  def findFilesByGroupId(groupId: String): Seq[FilesRow] = {
+    val result = db.run(files.filter(_.groupId === groupId).result)
 
     Await.ready(result, Duration.Inf)
 
