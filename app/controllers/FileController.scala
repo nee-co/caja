@@ -61,9 +61,9 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     }
   }
 
-  def update(id: String) = Action(parse.multipartFormData) { implicit request =>
+  def update(id: String) = Action(parse.urlFormEncoded) { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val name = request.body.dataParts("name").headOption
+    val name = request.body("name").headOption
     val file = db.getFile(id)
     val canUpdate = db.canUpdateAndDeleteFile(id, loginId)
 

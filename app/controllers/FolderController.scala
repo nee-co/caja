@@ -10,8 +10,8 @@ import utils.JsonFormatter
 import scala.collection.mutable
 
 class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFormatter) extends Controller {
-  def init = Action(parse.multipartFormData) { implicit request =>
-    val groupId = request.body.dataParts("group_id").headOption
+  def init = Action(parse.urlFormEncoded) { implicit request =>
+    val groupId = request.body("group_id").headOption
 
     (groupId.nonEmpty, db.hasTop(groupId.get)) match {
       case (true,  true) => NoContent
@@ -24,15 +24,15 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     }
   }
 
-  def clean = Action(parse.multipartFormData) { implicit request =>
-    val groupId = request.body.dataParts("group_id").headOption
+  def clean = Action(parse.urlFormEncoded) { implicit request =>
+    val groupId = request.body("group_id").headOption
     groupId.fold(Status(204))(id => if (db.clean(id)) Status(204) else Status(500))
   }
 
-  def create = Action(parse.multipartFormData) { implicit request =>
+  def create = Action(parse.urlFormEncoded) { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val name = request.body.dataParts("name").headOption
-    val parentId = request.body.dataParts("parent_id").headOption
+    val name = request.body("name").headOption
+    val parentId = request.body("parent_id").headOption
     val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)).map(_.id))
 
     (parentId, loginId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
@@ -54,9 +54,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     }
   }
 
-  def update(id: String) = Action(parse.multipartFormData) { implicit request =>
+  def update(id: String) = Action(parse.urlFormEncoded) { implicit request =>
     val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val name = request.body.dataParts("name").headOption
+    val name = request.body("name").headOption
     val folder = db.getFolder(id)
     val canUpdate = db.canUpdateAndDeleteFolder(id, loginId)
 
