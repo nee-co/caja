@@ -8,7 +8,7 @@ class JsonFormatter {
   def toTopsJson(tops: Seq[FoldersRow], groups: Map[String, Group]): Option[JsValue] = {
     Some(Json.toJson(
       Tops(tops.map(top =>
-        Top(top.id, groups(top.groupId).name)
+        Top(top.id, groups(top.groupId).name, groups(top.groupId).image.getOrElse(""))
       ))
     ))
   }
