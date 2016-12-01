@@ -19,13 +19,13 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     val hasIdenticalName = db.hasIdenticalName(parentId, Some(file.fold("")(_.filename)))
 
     (parentId, loginId, file, canCreate, hasIdenticalName) match {
-      case (Some(p1), Some(p2), Some(p3),  true, false) =>
+      case (Some(p1), Some(p2), Some(p3), true, false) =>
         val id = db.uuid
         val parent = db.getFolder(p1).get
 
         (s3.upload(s"${parent.groupId}/", id, p3.ref.file), db.createFile(id, parent.id, p2, p3.filename)) match {
-          case ( true, Some(createdId)) =>
-            val createdFile = db.getFile(id)
+          case (true, Some(createdId)) =>
+            val createdFile = db.getFile(createdId)
             val users = new mutable.HashMap[Int, User]
             val userIds = createdFile.map(_.insertedBy).toSeq ++ createdFile.map(_.updatedBy).toSeq
 
@@ -36,11 +36,11 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
               case None => InternalServerError
             }
           case (false, Some(createdId)) => db.deleteFile(createdId, p2); InternalServerError
-          case ( true,            None) => s3.delete(s"${parent.groupId}/$id"); InternalServerError
+          case (true, None) => s3.delete(s"${parent.groupId}/$id"); InternalServerError
           case _ => InternalServerError
         }
       case (Some(p1), Some(p2), Some(p3), false, false) => db.getFolder(parentId.fold("")(identity)).fold(Status(404))(folder => Status(403))
-      case (       _, Some(p2),        _,     _,     _) => Status(422)
+      case (_, Some(p2), _, _, _) => Status(422)
       case _ => Status(500)
     }
   }
