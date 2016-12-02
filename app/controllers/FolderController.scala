@@ -5,7 +5,7 @@ import javax.inject.Inject
 import models.{Group, User}
 import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
-import utils.JsonFormatter
+import utils.{JsonFormatter, MyAction}
 
 import scala.collection.mutable
 
@@ -20,7 +20,7 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case Some(createdId) => NoContent
           case None => InternalServerError
         }
-      case _ => InternalServerError
+      case _ => Status(500)
     }
   }
 
@@ -29,15 +29,14 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     groupId.fold(Status(204))(id => if (db.clean(id)) Status(204) else Status(500))
   }
 
-  def create = Action(parse.urlFormEncoded) { implicit request =>
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+  def create = MyAction.inside(parse.urlFormEncoded) { implicit request =>
     val name = request.body("name").headOption
     val parentId = request.body("parent_id").headOption
-    val canCreate = db.canCreateAndRead(parentId, ws.groups(loginId.fold(0)(identity)).map(_.id))
+    val canCreate = db.canCreateAndRead(parentId, ws.groups(request.loginId).map(_.id))
 
-    (parentId, loginId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
-      case (Some(p1), Some(p2), Some(p3),  true, false) =>
-        val createdId = db.createFolder(p1, "", p2, p3)
+    (parentId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
+      case (Some(p1), Some(p2),  true, false) =>
+        val createdId = db.createFolder(p1, "", request.loginId, p2)
         val createdFolder = db.getFolder(createdId.fold("")(identity))
         val users = new mutable.HashMap[Int, User]
         val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
@@ -48,21 +47,20 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case Some(jsValue) => Created(jsValue)
           case None => InternalServerError
         }
-      case (Some(p1), Some(p2), Some(p3), false, false) => Status(403)
-      case (       _, Some(p2),        _,     _,     _) => Status(422)
+      case (Some(p1), Some(p2), false, false) => Status(403)
+      case (       _,        _,     _,     _) => Status(422)
       case _ => Status(500)
     }
   }
 
-  def update(id: String) = Action(parse.urlFormEncoded) { implicit request =>
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val name = request.body("name").headOption
+  def update(id: String) = MyAction.inside(parse.urlFormEncoded) { implicit request =>
     val folder = db.getFolder(id)
-    val canUpdate = db.canUpdateAndDeleteFolder(id, loginId)
+    val name = request.body("name").headOption
+    val canUpdate = db.canUpdateAndDeleteFolder(id, request.loginId)
 
-    (loginId, name, folder, canUpdate) match {
-      case (Some(p1), Some(p2), Some(p3),  true) =>
-        val updatedId = db.updateFolder(folder, p1, p2)
+    (folder, name, canUpdate) match {
+      case (Some(p1), Some(p2),  true) =>
+        val updatedId = db.updateFolder(p1, request.loginId, p2)
         val updatedFolder = db.getFolder(updatedId.fold("")(identity))
         val users = new mutable.HashMap[Int, User]
         val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq
@@ -73,39 +71,35 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case Some(jsValue) => Ok(jsValue)
           case None => InternalServerError
         }
-      case (Some(p1), Some(p2), Some(p3), false) => Status(403)
-      case (Some(p1), Some(p2),     None,     _) => Status(404)
-      case _ => Status(500)
-    }
-  }
-
-  def delete(id: String) = Action { implicit request =>
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
-    val folder = db.getFolder(id)
-    val canDelete = db.canUpdateAndDeleteFolder(id, loginId)
-
-    (loginId, folder, canDelete) match {
-      case (Some(p1), Some(p2), true) =>
-        db.deleteUnderElements(id)
-        db.updateFolders(folder.fold("")(_.parentId), loginId.fold(0)(identity))
-        NoContent
       case (Some(p1), Some(p2), false) => Status(403)
-      case (Some(p1),     None,     _) => Status(404)
+      case (    None, Some(p2),     _) => Status(404)
       case _ => Status(500)
     }
   }
 
-  def elements(id: String) = Action { implicit request =>
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+  def delete(id: String) = MyAction.inside { implicit request =>
+    val folder = db.getFolder(id)
+    val canDelete = db.canUpdateAndDeleteFolder(id, request.loginId)
+
+    (folder, canDelete) match {
+      case (Some(p1),  true) =>
+        db.deleteUnderElements(id)
+        db.updateFolders(p1.parentId, request.loginId)
+        NoContent
+      case (Some(p1), false) => Status(403)
+      case (    None,     _) => Status(404)
+      case _ => Status(500)
+    }
+  }
+
+  def elements(id: String) = MyAction.inside { implicit request =>
     val users = new mutable.HashMap[Int, User]
-    val canRead = db.canCreateAndRead(Some(id), ws.groups(loginId.fold(0)(identity)).map(_.id))
+    val canRead = db.canCreateAndRead(Some(id), ws.groups(request.loginId).map(_.id))
     val hasFolder = db.getFolder(id).nonEmpty
     val current = db.getFolder(id)
     val elements = db.getUnderElements(id)
     val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq
-
     ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-
     val json = formatter.toUnderCollectionJson(current, elements, users.toMap)
 
     (canRead, hasFolder, json) match {
@@ -116,19 +110,14 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     }
   }
 
-  def tops = Action { implicit request =>
-    val loginId = request.headers.get("x-consumer-custom-id").map(_.toInt)
+  def tops = MyAction.inside { implicit request =>
     val groups = new mutable.HashMap[String, Group]
-    ws.groups(loginId.fold(0)(identity)).foreach(group => groups.put(group.id, group))
+    ws.groups(request.loginId).foreach(group => groups.put(group.id, group))
     val tops = db.myTops(groups.keysIterator.toSeq)
 
-    loginId match {
-      case Some(p1) =>
-        formatter.toTopsJson(tops, groups.toMap) match {
-          case Some(jsValue) => Ok(jsValue)
-          case None => InternalServerError
-        }
-      case None => Status(500)
+    formatter.toTopsJson(tops, groups.toMap) match {
+      case Some(jsValue) => Ok(jsValue)
+      case None => InternalServerError
     }
   }
 }

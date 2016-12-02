@@ -15,8 +15,8 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
   def uuid: String = java.util.UUID.randomUUID.toString
   def canReadFile(fileId: Option[String], groups: Seq[String]): Boolean = fileId.fold(false)(id => groups.contains(dao.findFile(id).fold("")(_.groupId)))
   def canCreateAndRead(folderId: Option[String], groups: Seq[String]): Boolean = folderId.fold(false)(id => groups.contains(dao.findFolder(id).fold("")(_.groupId)))
-  def canUpdateAndDeleteFile(id: String, userId: Option[Int]): Boolean = userId.fold(return false)(identity) == dao.findFile(id).fold(return false)(_.insertedBy)
-  def canUpdateAndDeleteFolder(id: String, userId: Option[Int]): Boolean = userId.fold(return false)(identity) == dao.findFolder(id).fold(return false)(_.insertedBy)
+  def canUpdateAndDeleteFile(id: String, userId: Int): Boolean = userId == dao.findFile(id).fold(return false)(_.insertedBy)
+  def canUpdateAndDeleteFolder(id: String, userId: Int): Boolean = userId == dao.findFolder(id).fold(return false)(_.insertedBy)
   def hasTop(groupId: String): Boolean = dao.findFolders("0").count(_.groupId == groupId) != 0
   def hasIdenticalName(id: Option[String], newObjectName: Option[String]): Boolean = dao.hasObjectByName(id.fold("")(identity), newObjectName.fold("")(identity))
   def myTops(groupIds: Seq[String]): Seq[FoldersRow] = dao.findFolders("0").filter(folder => groupIds.contains(folder.groupId))
@@ -38,13 +38,11 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
     }
   }
 
-  def updateFile(file: Option[ObjectProperty], userId: Int, name: String): Option[String] = {
-    file.map { file =>
-      if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
-        updateFolders(file.parentId, userId)
-        Some(file.id)
-      } else None
-    }.getOrElse(None)
+  def updateFile(file: ObjectProperty, userId: Int, name: String): Option[String] = {
+    if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
+      updateFolders(file.parentId, userId)
+      Some(file.id)
+    } else None
   }
 
   def createFolder(parentId: String, groupId: String, userId: Int, name: String): Option[String] = {
@@ -59,13 +57,11 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
     }
   }
 
-  def updateFolder(folder: Option[ObjectProperty], userId: Int, name: String): Option[String] = {
-    folder.map { folder =>
-      if (!dao.hasObjectByName(folder.parentId, name) && name != "" && dao.update(FoldersRow(folder.id, folder.parentId, folder.groupId, name, folder.insertedBy, new Timestamp(DateFormat.parse(folder.insertedAt).getTime), userId, nowTimestamp))) {
-        updateFolders(folder.parentId, userId)
-        Some(folder.id)
-      } else None
-    }.getOrElse(None)
+  def updateFolder(folder: ObjectProperty, userId: Int, name: String): Option[String] = {
+    if (!dao.hasObjectByName(folder.parentId, name) && name != "" && dao.update(FoldersRow(folder.id, folder.parentId, folder.groupId, name, folder.insertedBy, new Timestamp(DateFormat.parse(folder.insertedAt).getTime), userId, nowTimestamp))) {
+      updateFolders(folder.parentId, userId)
+      Some(folder.id)
+    } else None
   }
 
   def updateFolders(folderId: String, userId: Int): Unit = {
