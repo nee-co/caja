@@ -1,14 +1,14 @@
-image: 5003/centos-ansible-ci:2.1.x
+image: 5003/bitbucket-pipelines-building-images
 pipelines:
   default:
     - step:
         script:
           - >
-             build_push_image() {
-               test ! -d docker-img && git clone git@bitbucket.org:nhac/docker-img.git docker-img
-               pushd docker-img > /dev/null &&
-                 git pull &&
-                 bash -c ". ./build.sh $1 $2"
-               popd > /dev/null
-             }
-          - sshpass -p "${CI_PASS}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ci@neec.xyz "$(typeset -f); build_push_image $BITBUCKET_REPO_SLUG $BITBUCKET_COMMIT"
+             BUILDER_REPO=git@bitbucket.org:nhac/building-images.git
+             USERNAME=ci
+             SSHPASS=$CI_PASS
+             DOMAIN=neec.xyz
+             IMAGENAME_PREFIX=registry.${DOMAIN}/neeco/
+             IMAGENAME=${BITBUCKET_REPO_SLUG}-application
+             BUILD_OPTIONS="--build-arg REVISION=${BITBUCKET_COMMIT}"
+             xssh
