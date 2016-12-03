@@ -6,7 +6,7 @@ pipelines:
           - >
              BUILDER_REPO=git@bitbucket.org:nhac/building-images.git
              USERNAME=ci
-             SSHPASS=$CI_PASS
+             SSHPASS=$NEEC_XYZ_CI_SSHPASS
              DOMAIN=neec.xyz
              IMAGENAME_PREFIX=registry.${DOMAIN}/neeco/
              IMAGENAME=${BITBUCKET_REPO_SLUG}-application
