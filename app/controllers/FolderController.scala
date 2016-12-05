@@ -12,11 +12,12 @@ import scala.collection.mutable
 class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFormatter) extends Controller {
   def init = Action(parse.urlFormEncoded) { implicit request =>
     val groupId = request.body("group_id").headOption
+    val userId = request.body("user_id").headOption.map(_.toInt)
 
-    (groupId.nonEmpty, db.hasTop(groupId.get)) match {
-      case (true,  true) => NoContent
-      case (true, false) =>
-        db.createFolder("0", groupId.get, 0, "top") match {
+    (groupId, userId, db.hasTop(groupId.get)) match {
+      case (Some(p1), Some(p2),  true) => NoContent
+      case (Some(p1), Some(p2), false) =>
+        db.createFolder("0", p1, p2, "top") match {
           case Some(createdId) => NoContent
           case None => InternalServerError
         }
