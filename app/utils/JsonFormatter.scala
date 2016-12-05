@@ -2,14 +2,18 @@ package utils
 
 import models.Tables.FoldersRow
 import models._
+import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 
 class JsonFormatter {
-  def toTopsJson(tops: Seq[FoldersRow], groups: Map[String, Group]): Option[JsValue] = {
+  def toTopsJson(tops: Seq[FoldersRow], users: Map[Int, User], groups: Map[String, Group]): Option[JsValue] = {
+    val format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     Some(Json.toJson(
-      Tops(tops.map(top =>
-        Top(top.id, groups(top.groupId).name, groups(top.groupId).image.getOrElse(""))
-      ))
+      Tops(tops.map(top => {
+        val insertedAt = new DateTime(top.insertedAt).toString(format)
+        val updatedAt = new DateTime(top.updatedAt).toString(format)
+        Top(top.id, groups(top.groupId).name, groups(top.groupId).image.getOrElse(""), users(top.insertedBy), insertedAt, users(top.updatedBy), updatedAt)
+      }))
     ))
   }
 
