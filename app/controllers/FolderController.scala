@@ -14,20 +14,20 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     val groupId = request.body("group_id").headOption
     val userId = request.body("user_id").headOption.map(_.toInt)
 
-    (groupId, userId, db.hasTop(groupId.get)) match {
+    (groupId, userId, db.hasTop(groupId)) match {
       case (Some(p1), Some(p2),  true) => NoContent
       case (Some(p1), Some(p2), false) =>
         db.createFolder("0", p1, p2, "top") match {
           case Some(createdId) => NoContent
           case None => InternalServerError
         }
-      case _ => Status(500)
+      case _ => InternalServerError
     }
   }
 
   def clean = Action(parse.urlFormEncoded) { implicit request =>
     val groupId = request.body("group_id").headOption
-    groupId.fold(Status(204))(id => if (db.clean(id)) Status(204) else Status(500))
+    groupId.fold(NoContent)(id => if (db.clean(id)) NoContent else InternalServerError)
   }
 
   def create = MyAction.inside(parse.urlFormEncoded) { implicit request =>
@@ -48,9 +48,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case Some(jsValue) => Created(jsValue)
           case None => InternalServerError
         }
-      case (Some(p1), Some(p2), false, false) => Status(403)
-      case (       _,        _,     _,     _) => Status(422)
-      case _ => Status(500)
+      case (Some(p1), Some(p2), false, false) => Forbidden
+      case (       _,        _,     _,  true) => UnprocessableEntity
+      case _ => InternalServerError
     }
   }
 
@@ -72,9 +72,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case Some(jsValue) => Ok(jsValue)
           case None => InternalServerError
         }
-      case (Some(p1), Some(p2), false) => Status(403)
-      case (    None, Some(p2),     _) => Status(404)
-      case _ => Status(500)
+      case (Some(p1), Some(p2), false) => Forbidden
+      case (    None, Some(p2),     _) => NotFound
+      case _ => InternalServerError
     }
   }
 
@@ -87,9 +87,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
         db.deleteUnderElements(id)
         db.updateFolders(p1.parentId, request.loginId)
         NoContent
-      case (Some(p1), false) => Status(403)
-      case (    None,     _) => Status(404)
-      case _ => Status(500)
+      case (Some(p1), false) => Forbidden
+      case (    None,     _) => NotFound
+      case _ => InternalServerError
     }
   }
 
@@ -105,9 +105,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
 
     (canRead, hasFolder, json) match {
       case ( true,  true, Some(jsValue)) => Ok(jsValue)
-      case (false,  true,             _) => Status(403)
-      case (    _, false,             _) => Status(404)
-      case _ => Status(500)
+      case (false,  true,             _) => Forbidden
+      case (    _, false,             _) => NotFound
+      case _ => InternalServerError
     }
   }
 

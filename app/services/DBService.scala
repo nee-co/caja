@@ -17,14 +17,14 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
   def canCreateAndRead(folderId: Option[String], groups: Seq[String]): Boolean = folderId.fold(false)(id => groups.contains(dao.findFolder(id).fold("")(_.groupId)))
   def canUpdateAndDeleteFile(id: String, userId: Int): Boolean = userId == dao.findFile(id).fold(return false)(_.insertedBy)
   def canUpdateAndDeleteFolder(id: String, userId: Int): Boolean = userId == dao.findFolder(id).fold(return false)(_.insertedBy)
-  def hasTop(groupId: String): Boolean = dao.findFolders("0").count(_.groupId == groupId) != 0
+  def hasTop(groupId: Option[String]): Boolean = dao.findFolders("0").count(_.groupId == groupId.getOrElse("")) != 0
   def hasIdenticalName(id: Option[String], newObjectName: Option[String]): Boolean = dao.hasObjectByName(id.fold("")(identity), newObjectName.fold("")(identity))
   def myTops(groupIds: Seq[String]): Seq[FoldersRow] = dao.findFolders("0").filter(folder => groupIds.contains(folder.groupId))
 
   def clean(groupId: String): Boolean = {
     val deletedFileIds = dao.deleteByGroupId(groupId)
     deletedFileIds.foreach(s3.delete)
-    !hasTop(groupId)
+    !hasTop(Some(groupId))
   }
 
   def createFile(id:String, parentId: String, userId: Int, name: String): Option[String] = {

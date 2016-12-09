@@ -38,9 +38,9 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
           case (true, None) => s3.delete(s"${parent.groupId}/$id"); InternalServerError
           case _ => InternalServerError
         }
-      case (Some(p1), Some(p2), false, false) => db.getFolder(p1).fold(Status(404))(folder => Status(403))
-      case (       _, Some(p2),     _,     _) => Status(422)
-      case _ => Status(500)
+      case (Some(p1), Some(p2), false, false) => db.getFolder(p1).fold(NotFound)(folder => Forbidden)
+      case (       _, Some(p2),     _,     _) => UnprocessableEntity
+      case _ => InternalServerError
     }
   }
 
@@ -53,9 +53,9 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         val temp: File = File.createTempFile("temp", "")
         for (out <- Using(new FileOutputStream(temp))) out.write(p3)
         Ok.sendFile(temp, fileName = {f => file.get.name}, onClose = {() => temp.delete})
-      case (Some(p1), false,        _) => Status(403)
-      case (    None,     _,        _) => Status(404)
-      case _ => Status(500)
+      case (Some(p1), false,        _) => Forbidden
+      case (    None,     _,        _) => NotFound
+      case _ => InternalServerError
     }
   }
 
@@ -77,10 +77,10 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
           case Some(jsValue) => Ok(jsValue)
           case None => InternalServerError
         }
-      case (Some(p1), Some(p2), false) => Status(403)
-      case (    None, Some(p2),     _) => Status(404)
-      case (Some(p1),     None,     _) => Status(422)
-      case _ => Status(500)
+      case (Some(p1), Some(p2), false) => Forbidden
+      case (    None, Some(p2),     _) => NotFound
+      case (Some(p1),     None,     _) => UnprocessableEntity
+      case _ => InternalServerError
     }
   }
 
@@ -93,11 +93,11 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         (s3.delete(s"${p1.groupId}/${p1.id}"), db.deleteFile(id, request.loginId)) match {
           case (true,  true) => NoContent
           case (true, false) => db.createFile(p1.id, p1.parentId, request.loginId, p1.name); InternalServerError
-          case _ => Status(500)
+          case _ => InternalServerError
         }
-      case (Some(p1), false) => Status(403)
-      case (    None,     _) => Status(404)
-      case _ => Status(500)
+      case (Some(p1), false) => Forbidden
+      case (    None,     _) => NotFound
+      case _ => InternalServerError
     }
   }
 }
