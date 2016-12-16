@@ -3,6 +3,7 @@ package controllers
 import javax.inject.Inject
 
 import models.{Group, User}
+import play.api.libs.json.Json
 import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
 import utils.{JsonFormatter, MyAction}
@@ -22,6 +23,13 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
           case None => InternalServerError
         }
       case _ => InternalServerError
+    }
+  }
+
+  def topId(groupId: String) = Action { implicit request =>
+    db.getTop(Some(groupId)) match {
+      case Some(folder) => Ok(Json.parse(s"""{"id":"${folder.id}"}"""))
+      case None => NotFound
     }
   }
 

@@ -1,6 +1,7 @@
 # Routes
 
 # Internal
+GET     /internal/folders           controllers.FolderController.topId(group_id: String)
 POST    /internal/folders           controllers.FolderController.init
 POST    /internal/folders/cleanup   controllers.FolderController.clean
 
