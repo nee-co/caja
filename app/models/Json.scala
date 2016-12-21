@@ -51,7 +51,7 @@ object Folder {
   implicit def jsonWrites = Json.writes[Folder]
 }
 
-case class Element(`type`: String, id: String, name: String, created_user: User, created_at: String, updatedBy: User, updatedAt: String)
+case class Element(`type`: String, id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String)
 object Element {
   implicit def jsonWrites = Json.writes[Element]
 }
