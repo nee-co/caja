@@ -28,10 +28,10 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
     !hasTop(Some(groupId))
   }
 
-  def createFile(id:String, parentId: String, userId: Int, name: String): Option[String] = {
+  def createFile(id:String, parentId: String, userId: Int, name: String, size: Int): Option[String] = {
     dao.findFolder(parentId) match {
       case Some(parent) =>
-        if (dao.create(FilesRow(id, parent.id, parent.groupId, name, userId, nowTimestamp, userId, nowTimestamp))) {
+        if (dao.create(FilesRow(id, parent.id, parent.groupId, name, userId, nowTimestamp, userId, nowTimestamp, size))) {
           updateFolders(parent.id, userId)
           Some(id)
         } else None
@@ -40,7 +40,7 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
   }
 
   def updateFile(file: ObjectProperty, userId: Int, name: String): Option[String] = {
-    if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp))) {
+    if (!dao.hasObjectByName(file.parentId, name) && name != "" && dao.update(FilesRow(file.id, file.parentId, file.groupId, name, file.insertedBy, new Timestamp(DateFormat.parse(file.insertedAt).getTime), userId, nowTimestamp, file.size.getOrElse(0)))) {
       updateFolders(file.parentId, userId)
       Some(file.id)
     } else None
@@ -90,12 +90,12 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
     underFolderIds.foreach(deleteUnderElements)
   }
 
-  def getFile(id: String): Option[ObjectProperty] = dao.findFile(id).map(file => ObjectProperty("file", file.id,file.parentId, file.name, file.groupId, file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))
-  def getFolder(id: String): Option[ObjectProperty] = dao.findFolder(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))
+  def getFile(id: String): Option[ObjectProperty] = dao.findFile(id).map(file => ObjectProperty("file", file.id,file.parentId, file.name, file.groupId, file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Some(file.size)))
+  def getFolder(id: String): Option[ObjectProperty] = dao.findFolder(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), null))
 
   def getUnderElements(id: String): Seq[ObjectProperty] = {
-    val files = dao.findFiles(id).map(file => ObjectProperty("file", file.id, file.parentId, file.name, file.groupId,file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))
-    val folders = dao.findFolders(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")))
+    val files = dao.findFiles(id).map(file => ObjectProperty("file", file.id, file.parentId, file.name, file.groupId,file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Some(file.size)))
+    val folders = dao.findFolders(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), null))
 
     files ++ folders
   }
