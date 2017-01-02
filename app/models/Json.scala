@@ -31,7 +31,7 @@ object Users {
   implicit def jsonReads  = Json.reads[Users]
 }
 
-case class File(id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String)
+case class File(id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String, size: Int)
 object File {
   implicit def jsonWrites = Json.writes[File]
 }
@@ -51,7 +51,7 @@ object Folder {
   implicit def jsonWrites = Json.writes[Folder]
 }
 
-case class Element(`type`: String, id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String)
+case class Element(`type`: String, id: String, name: String, created_user: User, created_at: String, updated_user: User, updated_at: String, size: Option[Int])
 object Element {
   implicit def jsonWrites = Json.writes[Element]
 }

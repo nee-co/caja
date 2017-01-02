@@ -91,12 +91,12 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
   }
 
   def getFile(id: String): Option[ObjectProperty] = dao.findFile(id).map(file => ObjectProperty("file", file.id,file.parentId, file.name, file.groupId, file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Some(file.size)))
-  def getFolder(id: String): Option[ObjectProperty] = dao.findFolder(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), null))
+  def getFolder(id: String): Option[ObjectProperty] = dao.findFolder(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Option.empty[Int]))
 
   def getUnderElements(id: String): Seq[ObjectProperty] = {
     val files = dao.findFiles(id).map(file => ObjectProperty("file", file.id, file.parentId, file.name, file.groupId,file.insertedBy, new DateTime(file.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), file.updatedBy, new DateTime(file.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Some(file.size)))
-    val folders = dao.findFolders(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), null))
+    val folders = dao.findFolders(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Option.empty[Int]))
 
-    files ++ folders
+    folders ++ files
   }
 }
