@@ -10,6 +10,7 @@ CREATE TABLE `files` (
   `inserted_at` DATETIME NOT NULL COMMENT '作成日時',
   `updated_by` INTEGER NOT NULL COMMENT '更新者',
   `updated_at` DATETIME NOT NULL COMMENT '更新日',
+  `size` INTEGER NOT NULL COMMENT 'ファイルサイズ',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

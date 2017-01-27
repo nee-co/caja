@@ -26,18 +26,19 @@ trait Tables {
    *  @param insertedBy Database column inserted_by SqlType(INT)
    *  @param insertedAt Database column inserted_at SqlType(DATETIME)
    *  @param updatedBy Database column updated_by SqlType(INT)
-   *  @param updatedAt Database column updated_at SqlType(DATETIME) */
-  case class FilesRow(id: String, parentId: String, groupId: String, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp)
+   *  @param updatedAt Database column updated_at SqlType(DATETIME)
+   *  @param size Database column size SqlType(INT) */
+  case class FilesRow(id: String, parentId: String, groupId: String, name: String, insertedBy: Int, insertedAt: java.sql.Timestamp, updatedBy: Int, updatedAt: java.sql.Timestamp, size: Int)
   /** GetResult implicit for fetching FilesRow objects using plain SQL queries */
   implicit def GetResultFilesRow(implicit e0: GR[String], e1: GR[Int], e2: GR[java.sql.Timestamp]): GR[FilesRow] = GR{
     prs => import prs._
-    FilesRow.tupled((<<[String], <<[String], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp]))
+    FilesRow.tupled((<<[String], <<[String], <<[String], <<[String], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[java.sql.Timestamp], <<[Int]))
   }
   /** Table description of table files. Objects of this class serve as prototypes for rows in queries. */
   class Files(_tableTag: Tag) extends Table[FilesRow](_tableTag, "files") {
-    def * = (id, parentId, groupId, name, insertedBy, insertedAt, updatedBy, updatedAt) <> (FilesRow.tupled, FilesRow.unapply)
+    def * = (id, parentId, groupId, name, insertedBy, insertedAt, updatedBy, updatedAt, size) <> (FilesRow.tupled, FilesRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(parentId), Rep.Some(groupId), Rep.Some(name), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt)).shaped.<>({r=>import r._; _1.map(_=> FilesRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(parentId), Rep.Some(groupId), Rep.Some(name), Rep.Some(insertedBy), Rep.Some(insertedAt), Rep.Some(updatedBy), Rep.Some(updatedAt), Rep.Some(size)).shaped.<>({r=>import r._; _1.map(_=> FilesRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(CHAR), PrimaryKey, Length(36,false) */
     val id: Rep[String] = column[String]("id", O.PrimaryKey, O.Length(36,varying=false))
@@ -55,6 +56,8 @@ trait Tables {
     val updatedBy: Rep[Int] = column[Int]("updated_by")
     /** Database column updated_at SqlType(DATETIME) */
     val updatedAt: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("updated_at")
+    /** Database column size SqlType(INT) */
+    val size: Rep[Int] = column[Int]("size")
   }
   /** Collection-like TableQuery object for table Files */
   lazy val Files = new TableQuery(tag => new Files(tag))
