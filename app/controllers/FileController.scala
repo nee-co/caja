@@ -53,7 +53,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
               case None => InternalServerError
             }
           case (false, Some(createdId)) => db.deleteFile(createdId, request.loginId); InternalServerError
-          case (true, None) => s3.delete(s"${parent.groupId}/$id"); InternalServerError
+          case (true, None) => s3.delete(id); InternalServerError
           case _ => InternalServerError
         }
       case (Some(p1), Some(p2), false, false) => db.getFolder(p1).fold(NotFound)(folder => Forbidden)
@@ -109,7 +109,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
 
     (file, canDelete) match {
       case (Some(p1),  true) =>
-        (s3.delete(s"${p1.groupId}/${p1.id}"), db.deleteFile(id, request.loginId)) match {
+        (s3.delete(p1.id), db.deleteFile(id, request.loginId)) match {
           case (true,  true) => NoContent
           case (true, false) => db.createFile(p1.id, p1.parentId, request.loginId, p1.name, p1.size.getOrElse(0)); InternalServerError
           case _ => InternalServerError
