@@ -22,7 +22,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         val id = db.uuid
         val parent = db.getFolder(p1).get
 
-        (s3.upload(s"${parent.groupId}/", id, p2.ref.file), db.createFile(id, parent.id, request.loginId, p2.filename, p2.ref.file.length.toInt)) match {
+        (s3.upload(id, p2.ref.file), db.createFile(id, parent.id, request.loginId, p2.filename, p2.ref.file.length.toInt)) match {
           case (true, Some(createdId)) =>
             val createdFile = db.getFile(createdId)
             val users = new mutable.HashMap[Int, User]
@@ -48,7 +48,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     val file = db.getFile(id)
     val canRead = db.canReadFile(Some(id), ws.groups(request.loginId).map(_.id))
 
-    (file, canRead, s3.download(file.fold("")(file => s"${file.groupId}/${file.id}"))) match {
+    (file, canRead, s3.download(file.fold("")(_.id))) match {
       case (Some(p1),  true, Some(p3)) =>
         val temp: File = File.createTempFile("temp", "")
         for (out <- Using(new FileOutputStream(temp))) out.write(p3)
