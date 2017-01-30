@@ -60,3 +60,8 @@ case class Elements(current_folder: Folder, elements: Seq[Element])
 object Elements {
   implicit def jsonWrites = Json.writes[Elements]
 }
+
+case class Url(url: String)
+object Url {
+  implicit def jsonWrites = Json.writes[Url]
+}

@@ -3,14 +3,32 @@ package controllers
 import java.io.{File, FileOutputStream}
 import javax.inject.Inject
 
-import models.User
-import play.api.mvc.Controller
+import models.{Url, User}
+import play.api.mvc.{Action, Controller}
 import services.{DBService, S3Service, WsService}
 import utils.{JsonFormatter, MyAction, Using}
 
 import scala.collection.mutable
+import com.redis._
+import org.apache.commons.lang3.RandomStringUtils
+import play.api.libs.json.Json
 
 class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, formatter: JsonFormatter) extends Controller {
+  val redis = new RedisClient("localhost", 6379)
+
+  def downloadUrl(id: String) = MyAction.inside { implicit request =>
+    val canRead = db.canReadFile(Some(id), ws.groups(request.loginId).map(_.id))
+
+    canRead match {
+      case true =>
+        val token = RandomStringUtils.randomAlphanumeric(32)
+
+        redis.setex(token, 300, id)
+        Ok(Json.toJson(Url(s"https://api.neec.ooo/download/$id?token=$token")))
+      case false => Forbidden
+    }
+  }
+
   def upload = MyAction.inside(parse.multipartFormData) { implicit request =>
     val parentId = request.body.dataParts("parent_id").headOption
     val file = request.body.file("file")
@@ -44,12 +62,13 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     }
   }
 
-  def download(id: String) = MyAction.inside { implicit request =>
+  def download(id: String, token: String) = Action { implicit request =>
     val file = db.getFile(id)
-    val canRead = db.canReadFile(Some(id), ws.groups(request.loginId).map(_.id))
+    val isActiveToken = redis.get(token).fold("")(identity) == id
 
-    (file, canRead, s3.download(file.fold("")(_.id))) match {
+    (file, isActiveToken, s3.download(file.fold("")(_.id))) match {
       case (Some(p1),  true, Some(p3)) =>
+        redis.del(token)
         val temp: File = File.createTempFile("temp", "")
         for (out <- Using(new FileOutputStream(temp))) out.write(p3)
         Ok.sendFile(temp, fileName = {f => file.get.name}, onClose = {() => temp.delete})
