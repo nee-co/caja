@@ -10,11 +10,13 @@ import utils.{JsonFormatter, MyAction, Using}
 
 import scala.collection.mutable
 import com.redis._
+import com.typesafe.config.ConfigFactory
 import org.apache.commons.lang3.RandomStringUtils
 import play.api.libs.json.Json
 
 class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, formatter: JsonFormatter) extends Controller {
-  val redis = new RedisClient("localhost", 6379)
+  val config = ConfigFactory.load()
+  val redis = new RedisClient(sys.env("CAJA_REDIS_HOST"), sys.env("CAJA_REDIS_PORT").toInt)
 
   def downloadUrl(id: String) = MyAction.inside { implicit request =>
     val canRead = db.canReadFile(Some(id), ws.groups(request.loginId).map(_.id))
@@ -23,8 +25,8 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
       case true =>
         val token = RandomStringUtils.randomAlphanumeric(32)
 
-        redis.setex(token, 300, id)
-        Ok(Json.toJson(Url(s"https://api.neec.ooo/download/$id?token=$token")))
+        redis.setex(token, config.getInt("redis.expire"), id)
+        Ok(Json.toJson(Url(s"${sys.env("API_URL")}/download/$id?token=$token")))
       case false => Forbidden
     }
   }

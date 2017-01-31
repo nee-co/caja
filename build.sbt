@@ -11,6 +11,7 @@ val joda_time_version = "2.7"
 val joda_convert_version = "1.7"
 val redis_version = "3.3"
 val commons_lang_version = "3.5"
+val config_version = "1.2.1"
 
 scalaVersion := "2.11.8"
 
@@ -29,6 +30,7 @@ libraryDependencies ++= Seq(
 , "org.joda"           %  "joda-convert"          % joda_convert_version
 , "net.debasishg"      %% "redisclient"           % redis_version
 , "org.apache.commons" %  "commons-lang3"         % commons_lang_version
+, "com.typesafe"       %  "config"                % config_version
 )
 
 unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )  
