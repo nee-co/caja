@@ -16,7 +16,7 @@ import play.api.libs.json.Json
 
 class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, formatter: JsonFormatter) extends Controller {
   val config = ConfigFactory.load()
-  val redis = new RedisClient(sys.env("CAJA_REDIS_HOST"), sys.env("CAJA_REDIS_PORT").toInt)
+  val redis = new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
 
   def downloadUrl(id: String) = MyAction.inside { implicit request =>
     val canRead = db.canReadFile(Some(id), ws.groups(request.loginId).map(_.id))
@@ -26,7 +26,7 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
         val token = RandomStringUtils.randomAlphanumeric(32)
 
         redis.setex(token, config.getInt("redis.expire"), id)
-        Ok(Json.toJson(Url(s"${sys.env("API_URL")}/download/$id?token=$token")))
+        Ok(Json.toJson(Url(s"${config.getString("api.url")}/download/$id?token=$token")))
       case false => Forbidden
     }
   }
