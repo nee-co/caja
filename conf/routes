@@ -6,7 +6,7 @@ POST    /internal/folders           controllers.FolderController.init
 POST    /internal/folders/cleanup   controllers.FolderController.clean
 
 # File
-GET     /files/:id                  controllers.FileController.download(id: String)
+GET     /files/:id                  controllers.FileController.downloadUrl(id: String)
 POST    /files                      controllers.FileController.upload
 PATCH   /files/:id                  controllers.FileController.update(id: String)
 DELETE  /files/:id                  controllers.FileController.delete(id: String)
@@ -17,3 +17,6 @@ GET     /folders/:id                controllers.FolderController.elements(id: St
 POST    /folders                    controllers.FolderController.create
 PATCH   /folders/:id                controllers.FolderController.update(id: String)
 DELETE  /folders/:id                controllers.FolderController.delete(id: String)
+
+# Download
+GET     /download/:id               controllers.FileController.download(id: String, token: String)
