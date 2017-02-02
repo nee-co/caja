@@ -17,14 +17,14 @@ class JsonFormatter {
     ))
   }
 
-  def toUnderCollectionJson(current: Option[ObjectProperty], elements: Seq[ObjectProperty], users: Map[Int, User]): Option[JsValue] = {
+  def toUnderCollectionJson(current: Option[ObjectProperty], elements: Seq[ObjectProperty], users: Map[Int, User], parents: Seq[Parent]): Option[JsValue] = {
     val result = for {
       current <- current
     } yield {
       val currentFolder = Folder(current.id, current.name, users(current.insertedBy), current.insertedAt, users(current.updatedBy), current.updatedAt)
       val elementList = elements.map(obj => Element(obj.`type`, obj.id, obj.name, users(obj.insertedBy), obj.insertedAt, users(obj.updatedBy), obj.updatedAt, obj.size))
 
-      Json.toJson(Elements(currentFolder, elementList))
+      Json.toJson(Elements(parents, currentFolder, elementList))
     }
     result.iterator.toStream.headOption
   }

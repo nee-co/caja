@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
-import models.{Group, User}
+import models.{Group, Parent, User}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
@@ -108,8 +108,10 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     val current = db.getFolder(id)
     val elements = db.getUnderElements(id)
     val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq
+    val groups = ws.groups(request.loginId).map(group => Map(group.id -> group.name)).reduce((a, b) => a ++ b)
+    val parents = db.getParents(id).map(folder => if (folder.name == "top") Parent(folder.id, groups(folder.groupId)) else Parent(folder.id, folder.name)).reverse
     ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-    val json = formatter.toUnderCollectionJson(current, elements, users.toMap)
+    val json = formatter.toUnderCollectionJson(current, elements, users.toMap, parents)
 
     (canRead, hasFolder, json) match {
       case ( true,  true, Some(jsValue)) => Ok(jsValue)
