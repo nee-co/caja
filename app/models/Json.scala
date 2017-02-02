@@ -61,7 +61,7 @@ object Elements {
   implicit def jsonWrites = Json.writes[Elements]
 }
 
-case class Url(url: String)
+case class Url(download_url: String)
 object Url {
   implicit def jsonWrites = Json.writes[Url]
 }
