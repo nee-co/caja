@@ -56,7 +56,12 @@ object Element {
   implicit def jsonWrites = Json.writes[Element]
 }
 
-case class Elements(current_folder: Folder, elements: Seq[Element])
+case class Parent(id: String, name: String)
+object Parent {
+  implicit def jsonWrites = Json.writes[Parent]
+}
+
+case class Elements(parents: Seq[Parent], current_folder: Folder, elements: Seq[Element])
 object Elements {
   implicit def jsonWrites = Json.writes[Elements]
 }

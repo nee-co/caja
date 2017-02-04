@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import javax.inject.Inject
 
-import models.ObjectProperty
+import models.{ObjectProperty, Parent}
 import models.Tables.{FilesRow, FoldersRow}
 import org.joda.time.{DateTime, LocalDateTime}
 import utils.DAO
@@ -98,5 +98,9 @@ class DBService @Inject()(dao: DAO, s3: S3Service) {
     val folders = dao.findFolders(id).map(folder => ObjectProperty("folder", folder.id, folder.parentId, folder.name, folder.groupId, folder.insertedBy, new DateTime(folder.insertedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), folder.updatedBy, new DateTime(folder.updatedAt).toString("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), Option.empty[Int]))
 
     folders ++ files
+  }
+
+  def getParents(folderId: String): Seq[FoldersRow] = {
+    dao.findFolder(folderId).fold(Seq.empty[FoldersRow])(folder => folder +: getParents(folder.parentId))
   }
 }
