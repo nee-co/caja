@@ -70,14 +70,9 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
     (folder, name, canUpdate) match {
       case (Some(p1), Some(p2),  true) =>
         val updatedId = db.updateFolder(p1, request.loginId, p2)
-        val updatedFolder = db.getFolder(updatedId.fold("")(identity))
-        val users = new mutable.HashMap[Int, User]
-        val userIds = updatedFolder.map(_.insertedBy).toSeq ++ updatedFolder.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-
-        formatter.toFolderJson(updatedFolder, users.toMap) match {
-          case Some(jsValue) => Ok(jsValue)
+        updatedId match {
+          case Some(id) => NoContent
           case None => InternalServerError
         }
       case (Some(p1), Some(p2), false) => Forbidden

@@ -88,14 +88,9 @@ class FileController @Inject()(db: DBService, ws: WsService, s3: S3Service, form
     (file, name, canUpdate) match {
       case (Some(p1), Some(p2),  true) =>
         val updatedId = db.updateFile(p1, request.loginId, p2)
-        val updatedFile = db.getFile(updatedId.fold("")(identity))
-        val users = new mutable.HashMap[Int, User]
-        val userIds = updatedFile.map(_.insertedBy).toSeq ++ updatedFile.map(_.updatedBy).toSeq
 
-        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-
-        formatter.toFileJson(updatedFile, users.toMap) match {
-          case Some(jsValue) => Ok(jsValue)
+        updatedId match {
+          case Some(id) => NoContent
           case None => InternalServerError
         }
       case (Some(p1), Some(p2), false) => Forbidden
