@@ -11,14 +11,13 @@ import utils.Using
 import scala.util.{Failure, Success, Try}
 
 class S3Service {
-  private val config = ConfigFactory.parseFile(new File("./conf/application.conf")).resolve
+  private val config = ConfigFactory.load
   private val accessKey  = config.getString("aws.s3.accesskey")
   private val secretKey  = config.getString("aws.s3.secretkey")
   private val bucketName = config.getString("aws.s3.bucketname")
   private val s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey))
 
   def upload(objectKey: String, file: File): Boolean = {
-
     Try(s3.putObject(bucketName, objectKey, file)) match {
       case Success(result) => hasObject(objectKey)
       case Failure(t) => false

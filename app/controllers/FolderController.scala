@@ -3,7 +3,7 @@ package controllers
 import javax.inject.Inject
 
 import models.{Group, Parent, User}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, Controller}
 import services.{DBService, WsService}
 import utils.{JsonFormatter, MyAction}
@@ -12,108 +12,115 @@ import scala.collection.mutable
 
 class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFormatter) extends Controller {
   def init = Action(parse.urlFormEncoded) { implicit request =>
-    val groupId = request.body("group_id").headOption
-    val userId = request.body("user_id").headOption.map(_.toInt)
-
-    (groupId, userId, db.hasTop(groupId)) match {
-      case (Some(p1), Some(p2),  true) => NoContent
-      case (Some(p1), Some(p2), false) =>
-        db.createFolder("0", p1, p2, "top") match {
-          case Some(createdId) => NoContent
-          case None => InternalServerError
+    (for {
+      groupId <- request.body.get("group_id").flatMap(_.headOption).toRight(InternalServerError).right
+      userId  <- request.body.get("user_id").flatMap(_.headOption).flatMap(safeStringToInt).toRight(InternalServerError).right
+      result  <- {
+        if (db.hasTop(groupId)) {
+          None.toRight(NoContent).right
+        } else {
+          db.createFolder("0", groupId, userId.toInt, "top").toRight(InternalServerError).right
         }
-      case _ => InternalServerError
-    }
+      }
+    } yield result).fold(identity, createdId => NoContent)
   }
 
   def topId(groupId: String) = Action { implicit request =>
-    db.getTop(Some(groupId)) match {
+    db.getTop(groupId) match {
       case Some(folder) => Ok(Json.parse(s"""{"id":"${folder.id}"}"""))
       case None => NotFound
     }
   }
 
   def clean = Action(parse.urlFormEncoded) { implicit request =>
-    val groupId = request.body("group_id").headOption
+    val groupId = request.body.get("group_id").flatMap(_.headOption)
     groupId.fold(NoContent)(id => if (db.clean(id)) NoContent else InternalServerError)
   }
 
+  private def createFolder(parentId: String, name: String, loginId: Int): Option[JsValue] = {
+    val createdId = db.createFolder(parentId, "", loginId, name)
+    val createdFolder = db.getFolder(createdId.fold(return None)(identity))
+    val users = new mutable.HashMap[Int, User]
+    val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
+
+    ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
+    formatter.toFolderJson(createdFolder, users.toMap)
+  }
+
   def create = MyAction.inside(parse.urlFormEncoded) { implicit request =>
-    val name = request.body("name").headOption
-    val parentId = request.body("parent_id").headOption
-    val canCreate = db.canCreateAndRead(parentId, ws.groups(request.loginId).map(_.id))
-
-    (parentId, name, canCreate, db.hasIdenticalName(parentId, name)) match {
-      case (Some(p1), Some(p2),  true, false) =>
-        val createdId = db.createFolder(p1, "", request.loginId, p2)
-        val createdFolder = db.getFolder(createdId.fold("")(identity))
-        val users = new mutable.HashMap[Int, User]
-        val userIds = createdFolder.map(_.insertedBy).toSeq ++ createdFolder.map(_.updatedBy).toSeq
-
-        ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-
-        formatter.toFolderJson(createdFolder, users.toMap) match {
-          case Some(jsValue) => Created(jsValue)
-          case None => InternalServerError
+    (for {
+      name     <- request.body.get("name").flatMap(_.headOption).toRight(UnprocessableEntity).right
+      parentId <- request.body.get("parent_id").flatMap(_.headOption).toRight(UnprocessableEntity).right
+      result   <- {
+        if (name == "" || parentId == "") {
+          None.toRight(UnprocessableEntity).right
+        } else if (!db.canCreateAndRead(parentId, ws.groups(request.loginId).map(_.id))) {
+          None.toRight(Forbidden).right
+        } else if (!db.isUsableName(parentId, name)) {
+          None.toRight(UnprocessableEntity).right
+        } else {
+          createFolder(parentId, name, request.loginId).toRight(InternalServerError).right
         }
-      case (Some(p1), Some(p2), false, false) => Forbidden
-      case (       _,        _,     _,  true) => UnprocessableEntity
-      case _ => InternalServerError
-    }
+      }
+    } yield result).fold(identity, jsValue => Created(jsValue))
   }
 
   def update(id: String) = MyAction.inside(parse.urlFormEncoded) { implicit request =>
-    val folder = db.getFolder(id)
-    val name = request.body("name").headOption
-    val canUpdate = db.canUpdateAndDeleteFolder(id, request.loginId)
-
-    (folder, name, canUpdate) match {
-      case (Some(p1), Some(p2),  true) =>
-        val updatedId = db.updateFolder(p1, request.loginId, p2)
-
-        updatedId match {
-          case Some(id) => NoContent
-          case None => InternalServerError
+    (for {
+      folder <- db.getFolder(id).toRight(NotFound).right
+      name   <- request.body.get("name").flatMap(_.headOption).toRight(UnprocessableEntity).right
+      result <- {
+        if (name == "") {
+          None.toRight(UnprocessableEntity).right
+        } else if (!db.canUpdateAndDeleteFolder(id, request.loginId)) {
+          None.toRight(Forbidden).right
+        } else {
+          db.updateFolder(folder, request.loginId, name).toRight(InternalServerError).right
         }
-      case (Some(p1), Some(p2), false) => Forbidden
-      case (    None, Some(p2),     _) => NotFound
-      case _ => InternalServerError
-    }
+      }
+    } yield result).fold(identity, updatedId => NoContent)
   }
 
   def delete(id: String) = MyAction.inside { implicit request =>
-    val folder = db.getFolder(id)
-    val canDelete = db.canUpdateAndDeleteFolder(id, request.loginId)
-
-    (folder, canDelete) match {
-      case (Some(p1),  true) =>
+    (for {
+      folder <- db.getFolder(id).toRight(NotFound).right
+    } yield {
+      if (db.canUpdateAndDeleteFolder(id, request.loginId)) {
         db.deleteUnderElements(id)
-        db.updateFolders(p1.parentId, request.loginId)
+        db.updateFolders(folder.parentId, request.loginId)
         NoContent
-      case (Some(p1), false) => Forbidden
-      case (    None,     _) => NotFound
-      case _ => InternalServerError
-    }
+      } else {
+        Forbidden
+      }
+    }).fold(identity, identity)
   }
 
   def elements(id: String) = MyAction.inside { implicit request =>
-    val users = new mutable.HashMap[Int, User]
-    val canRead = db.canCreateAndRead(Some(id), ws.groups(request.loginId).map(_.id))
-    val hasFolder = db.getFolder(id).nonEmpty
-    val current = db.getFolder(id)
-    val elements = db.getUnderElements(id)
-    val userIds = (current.map(_.insertedBy) ++ current.map(_.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)).toSeq
-    val groups = ws.groups(request.loginId).map(group => Map(group.id -> group.name)).reduce((a, b) => a ++ b)
-    val parents = db.getParents(id).map(folder => if (folder.name == "top") Parent(folder.id, groups(folder.groupId)) else Parent(folder.id, folder.name)).reverse
-    ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
-    val json = formatter.toUnderCollectionJson(current, elements, users.toMap, parents)
-
-    (canRead, hasFolder, json) match {
-      case ( true,  true, Some(jsValue)) => Ok(jsValue)
-      case (false,  true,             _) => Forbidden
-      case (    _, false,             _) => NotFound
-      case _ => InternalServerError
-    }
+    (for {
+      current <- db.getFolder(id).toRight(NotFound).right
+      result  <- {
+        if (db.canCreateAndRead(current.id, ws.groups(request.loginId).map(_.id))) {
+          val users = new mutable.HashMap[Int, User]
+          val elements = db.getUnderElements(id)
+          val userIds = Seq(current.insertedBy, current.updatedBy) ++ elements.map(_.insertedBy) ++ elements.map(_.updatedBy)
+          val groups  = ws.groups(request.loginId)
+                          .map(group => Map(group.id -> group.name))
+                          .reduce((a, b) => a ++ b)
+          val parents = db.getParents(id)
+                          .map(folder =>
+                            if (folder.name == "top") {
+                              Parent(folder.id, groups(folder.groupId))
+                            } else {
+                              Parent(folder.id, folder.name)
+                            })
+                          .reverse
+          ws.users(userIds.distinct).foreach(user => users.put(user.id, user))
+          formatter.toUnderCollectionJson(current, elements, users.toMap, parents).toRight(InternalServerError).right
+        } else {
+          None.toRight(Forbidden).right
+        }
+      }
+    } yield result).fold(identity, jsValue => Ok(jsValue))
   }
 
   def tops = MyAction.inside { implicit request =>
@@ -127,5 +134,10 @@ class FolderController @Inject()(db: DBService, ws: WsService, formatter: JsonFo
       case Some(jsValue) => Ok(jsValue)
       case None => InternalServerError
     }
+  }
+
+  private def safeStringToInt(str: String): Option[Int] = {
+    import scala.util.control.Exception._
+    catching(classOf[NumberFormatException]) opt str.toInt
   }
 }
